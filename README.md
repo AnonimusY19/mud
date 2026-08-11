@@ -1,4 +1,4 @@
-# mud
+# MUD
 
 A new Flutter project.
 
