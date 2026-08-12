@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stream_chat_flutter/stream_chat_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_state.dart';
 import '../main_shell.dart';
 import '../screens/auth_screen.dart';
+import '../services/stream_chat_service.dart';
 import '../theme/app_colors.dart';
 
-/// Gate di avvio: sessione → profilo → app.
+/// Gate di avvio: sessione → profilo → Stream Chat → app.
 class AppBootstrap extends StatefulWidget {
   final AppState appState;
 
@@ -44,6 +46,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
     if (session == null) {
       _bootstrappingUserId = null;
       _bootstrapInFlight = false;
+      await StreamChatService.instance.disconnect();
       widget.appState.clearSessionData();
       if (!mounted) return;
       setState(() {
@@ -68,7 +71,12 @@ class _AppBootstrapState extends State<AppBootstrap> {
     }
 
     try {
-      await widget.appState.loadProfile();
+      final profile = await widget.appState.loadProfile();
+      try {
+        await StreamChatService.instance.connect(profile);
+      } catch (e) {
+        debugPrint('Stream Chat connect error: $e');
+      }
       if (!mounted) return;
       if (_bootstrappingUserId != userId) return;
       _bootstrapInFlight = false;
@@ -80,6 +88,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
     } catch (_) {
       _bootstrappingUserId = null;
       _bootstrapInFlight = false;
+      await StreamChatService.instance.disconnect();
       widget.appState.clearSessionData();
       _authMessage = 'Impossibile accedere al profilo. Effettua di nuovo l\'accesso.';
       try {
@@ -97,26 +106,35 @@ class _AppBootstrapState extends State<AppBootstrap> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              const Text(
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
                 'Caricamento profilo...',
                 style: TextStyle(color: AppColors.textGrey, fontWeight: FontWeight.w600),
               ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
     }
 
     if (!_ready) {
       return AuthScreen(initialMessage: _authMessage);
+    }
+
+    final stream = StreamChatService.instance;
+    if (stream.isReady) {
+      return StreamChat(
+        client: stream.client,
+        themeData: StreamChatThemeData(),
+        child: const MainShell(),
+      );
     }
 
     return const MainShell();

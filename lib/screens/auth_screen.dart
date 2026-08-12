@@ -26,6 +26,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _cognomeCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
   final _codiceFiscaleCtrl = TextEditingController();
+  final _nomeAziendaCtrl = TextEditingController();
 
   bool _isLogin = true;
   bool _loading = false;
@@ -73,6 +74,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _cognomeCtrl.dispose();
     _telefonoCtrl.dispose();
     _codiceFiscaleCtrl.dispose();
+    _nomeAziendaCtrl.dispose();
     super.dispose();
   }
 
@@ -100,9 +102,10 @@ class _AuthScreenState extends State<AuthScreen> {
     if (_nomeCtrl.text.trim().isEmpty ||
         _cognomeCtrl.text.trim().isEmpty ||
         _telefonoCtrl.text.trim().isEmpty ||
-        _codiceFiscaleCtrl.text.trim().isEmpty) {
+        _codiceFiscaleCtrl.text.trim().isEmpty ||
+        _nomeAziendaCtrl.text.trim().isEmpty) {
       setState(() {
-        _error = 'Compila nome, cognome, telefono e codice fiscale';
+        _error = 'Compila nome, cognome, telefono, codice fiscale e nome azienda';
         _info = null;
       });
       return false;
@@ -164,6 +167,7 @@ class _AuthScreenState extends State<AuthScreen> {
         final cognome = _cognomeCtrl.text.trim();
         final telefono = PhoneNumber.normalize(_telefonoCtrl.text)!;
         final codiceFiscale = _codiceFiscaleCtrl.text.trim().toUpperCase();
+        final nomeAzienda = _nomeAziendaCtrl.text.trim();
         final tipoAttivita = _tipoAttivita!;
 
         final response = await auth.signUp(
@@ -174,6 +178,7 @@ class _AuthScreenState extends State<AuthScreen> {
             'cognome': cognome,
             'telefono': telefono,
             'codice_fiscale': codiceFiscale,
+            'nome_azienda': nomeAzienda,
             'tipo_attivita': tipoAttivita,
           },
         );
@@ -184,6 +189,7 @@ class _AuthScreenState extends State<AuthScreen> {
             cognome: cognome,
             telefono: telefono,
             codiceFiscale: codiceFiscale,
+            nomeAzienda: nomeAzienda,
             tipoAttivita: tipoAttivita,
           );
         }
@@ -253,6 +259,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           cognomeCtrl: _cognomeCtrl,
                           telefonoCtrl: _telefonoCtrl,
                           codiceFiscaleCtrl: _codiceFiscaleCtrl,
+                          nomeAziendaCtrl: _nomeAziendaCtrl,
                           onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
                           onTipoChanged: (v) => setState(() => _tipoAttivita = v),
                           onSubmit: _submit,
@@ -287,6 +294,7 @@ class _AuthScreenState extends State<AuthScreen> {
           cognomeCtrl: _cognomeCtrl,
           telefonoCtrl: _telefonoCtrl,
           codiceFiscaleCtrl: _codiceFiscaleCtrl,
+          nomeAziendaCtrl: _nomeAziendaCtrl,
           onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
           onTipoChanged: (v) => setState(() => _tipoAttivita = v),
           onSubmit: _submit,
@@ -430,6 +438,7 @@ class _FormPane extends StatelessWidget {
   final TextEditingController cognomeCtrl;
   final TextEditingController telefonoCtrl;
   final TextEditingController codiceFiscaleCtrl;
+  final TextEditingController nomeAziendaCtrl;
   final VoidCallback onToggleObscure;
   final ValueChanged<String> onTipoChanged;
   final VoidCallback onSubmit;
@@ -450,6 +459,7 @@ class _FormPane extends StatelessWidget {
     required this.cognomeCtrl,
     required this.telefonoCtrl,
     required this.codiceFiscaleCtrl,
+    required this.nomeAziendaCtrl,
     required this.onToggleObscure,
     required this.onTipoChanged,
     required this.onSubmit,
@@ -500,6 +510,9 @@ class _FormPane extends StatelessWidget {
         const SizedBox(height: 16),
         formLabel('Codice fiscale'),
         formTextField(controller: codiceFiscaleCtrl, hint: 'RSSMRA80A01H501U'),
+        const SizedBox(height: 16),
+        formLabel('Nome azienda'),
+        formTextField(controller: nomeAziendaCtrl, hint: 'La mia azienda Srl'),
         const SizedBox(height: 16),
         formLabel('Tipo attività'),
         Row(

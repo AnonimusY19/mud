@@ -37,6 +37,8 @@ dependencies:
   supabase_flutter: ^2.17.1
   flutter_dotenv: ^6.0.1
   http: ^1.6.0
+  stream_chat_flutter: ^10.2.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../app_state.dart';
 import '../models/listing.dart';
+import '../screens/channel_page.dart';
+import '../services/stream_chat_service.dart';
 import '../theme/app_colors.dart';
 import 'type_badge.dart';
 
@@ -161,12 +164,7 @@ class _DetailsPane extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: () {
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Chat con $company in arrivo')),
-            );
-          },
+          onPressed: () => _startChat(context),
           icon: const Icon(Icons.chat_bubble_outline),
           label: const Text('Contatta', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           style: ElevatedButton.styleFrom(
@@ -188,6 +186,41 @@ class _DetailsPane extends StatelessWidget {
         children: content,
       ),
     );
+  }
+
+  Future<void> _startChat(BuildContext context) async {
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    final userId = AppScope.of(context).currentUserId;
+    final listingRef = listing;
+
+    Navigator.of(context).pop(); // chiude il dialog dettaglio
+
+    void showError(String message) {
+      final messenger = ScaffoldMessenger.maybeOf(rootNav.context);
+      messenger?.showSnackBar(SnackBar(content: Text(message)));
+    }
+
+    if (userId == null) {
+      showError('Devi essere autenticato');
+      return;
+    }
+
+    try {
+      final channel = await StreamChatService.instance.openListingChat(
+        listing: listingRef,
+        currentUserId: userId,
+      );
+      if (!rootNav.mounted) return;
+      await rootNav.push(
+        MaterialPageRoute(builder: (_) => ChannelPage(channel: channel)),
+      );
+    } catch (e, st) {
+      debugPrint('Contatta failed: $e\n$st');
+      final message = e is StateError
+          ? e.message
+          : 'Impossibile aprire la chat. Riprova.';
+      showError(message);
+    }
   }
 }
 

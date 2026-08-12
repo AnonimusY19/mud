@@ -80,6 +80,7 @@ class ProfileService {
     required String cognome,
     required String telefono,
     required String codiceFiscale,
+    String? nomeAzienda,
     String? tipoAttivita,
   }) async {
     final userId = currentUserId;
@@ -91,6 +92,9 @@ class ProfileService {
       'telefono': telefono.trim(),
       'codice_fiscale': codiceFiscale.trim().toUpperCase(),
     };
+    if (nomeAzienda != null && nomeAzienda.trim().isNotEmpty) {
+      identity['nome_azienda'] = nomeAzienda.trim();
+    }
 
     final existing = await _client.from('profiles').select('id, tipo_attivita').eq('id', userId).maybeSingle();
     if (existing == null) {
