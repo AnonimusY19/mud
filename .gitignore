@@ -3,6 +3,8 @@
 *.log
 *.pyc
 *.swp
+*~
+*.bak
 .DS_Store
 Thumbs.db
 .atom/
@@ -13,45 +15,57 @@ Thumbs.db
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# IDE / editors
 *.iml
 *.ipr
 *.iws
 .idea/
+*.sublime-workspace
+*.sublime-project
+# .vscode/  # decommenta se non vuoi versionare le impostazioni VS Code/Cursor
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Cursor / tooling locale
+.cursor/
+.claude/
+.github/modernize/
 
-# Flutter/Dart/Pub related
+# Flutter / Dart / Pub
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
+.pubignore
 /build/
 /coverage/
+.widget_preview/
 
-# Symbolication related
+# Symbolication / obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio build outputs
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# Widget Preview related
-.widget_preview/
-
-# Node
+# Node (Supabase CLI)
 node_modules/
+npm-debug.log*
+yarn-error.log*
 
-# Environment / secrets
+# Environment / secrets (mai committare)
 .env
 .env.*
 !.env.example
+
+# Keys / certs
+*.pem
+*.p12
+*.key
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist

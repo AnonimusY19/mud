@@ -1,13 +1,12 @@
-# Supabase
+# Supabase local runtime
 .branches
 .temp
+.volumes/
 
 # Environment / secrets
 .env
 .env.*
 !.env.example
-
-# dotenvx
 .env.keys
 .env.local
 .env.*.local
