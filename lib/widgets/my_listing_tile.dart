@@ -16,7 +16,11 @@ class MyListingTile extends StatelessWidget {
     final barColor = isVendo ? AppColors.green : AppColors.blue;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: IntrinsicHeight(
         child: Row(
           children: [
@@ -36,7 +40,7 @@ class MyListingTile extends StatelessWidget {
                   children: [
                     TypeBadge(type: listing.type),
                     const SizedBox(height: 8),
-                    Text(listing.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    Text(listing.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                     const SizedBox(height: 2),
                     Text(
                       '€${listing.price.toStringAsFixed(2)}/${listing.unit} · ${listing.category}',
@@ -46,7 +50,7 @@ class MyListingTile extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(icon: const Icon(Icons.edit_outlined, color: Color(0xFF4B5563)), onPressed: onEdit),
+            IconButton(icon: const Icon(Icons.edit_outlined, color: AppColors.textGrey), onPressed: onEdit),
             IconButton(icon: const Icon(Icons.delete_outline, color: AppColors.danger), onPressed: onDelete),
           ],
         ),

@@ -13,11 +13,11 @@ class EmptyState extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 56, color: const Color(0xFFC7CBD1)),
+        Icon(icon, size: 56, color: AppColors.textLightGrey),
         const SizedBox(height: 16),
         Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         const SizedBox(height: 6),
-        Text(subtitle, style: const TextStyle(color: AppColors.textLightGrey, fontSize: 14)),
+        Text(subtitle, style: const TextStyle(color: AppColors.textLightGrey, fontSize: 14), textAlign: TextAlign.center),
       ],
     );
   }

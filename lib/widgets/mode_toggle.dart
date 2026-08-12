@@ -13,8 +13,9 @@ class ModeToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceGrey,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -34,24 +35,15 @@ class ModeToggle extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : [],
         ),
         child: Text(
           label,
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 14,
-            color: selected ? AppColors.primary : AppColors.textLightGrey,
+            color: selected ? Colors.white : AppColors.textLightGrey,
           ),
         ),
       ),

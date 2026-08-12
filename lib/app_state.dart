@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
 import 'models/listing.dart';
+import 'models/profile.dart';
 import 'services/listing_service.dart';
+import 'services/profile_service.dart';
 
 enum AppMode { compra, vendi }
 
 class AppState extends ChangeNotifier {
-  AppState({ListingService? listingService}) : _listingService = listingService ?? ListingService();
+  AppState({
+    ListingService? listingService,
+    ProfileService? profileService,
+  })  : _listingService = listingService ?? ListingService(),
+        _profileService = profileService ?? ProfileService();
 
   final ListingService _listingService;
+  final ProfileService _profileService;
 
   AppMode mode = AppMode.compra;
+  Profile? profile;
   final List<Listing> listings = [];
   bool listingsLoading = false;
   String? listingsError;
 
   String? get currentUserId => _listingService.currentUserId;
+  String? get currentUserEmail => _profileService.currentUserEmail;
 
   List<Listing> get myListings {
     final userId = currentUserId;
@@ -25,6 +34,33 @@ class AppState extends ChangeNotifier {
   void setMode(AppMode value) {
     if (mode == value) return;
     mode = value;
+    notifyListeners();
+  }
+
+  void setProfile(Profile value) {
+    profile = value;
+    mode = value.modalita;
+    notifyListeners();
+  }
+
+  /// Carica il profilo della sessione corrente. Lancia se non accessibile.
+  Future<Profile> loadProfile() async {
+    final loaded = await _profileService.fetchCurrentProfile();
+    if (loaded == null) {
+      throw StateError('Profilo non disponibile');
+    }
+    profile = loaded;
+    mode = loaded.modalita;
+    notifyListeners();
+    return loaded;
+  }
+
+  void clearSessionData() {
+    profile = null;
+    listings.clear();
+    listingsError = null;
+    listingsLoading = false;
+    mode = AppMode.compra;
     notifyListeners();
   }
 

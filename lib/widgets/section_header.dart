@@ -13,7 +13,7 @@ class SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w900)),
+        Text(title, style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
         const SizedBox(height: 4),
         Text(subtitle, style: const TextStyle(fontSize: 15, color: AppColors.textGrey)),
       ],

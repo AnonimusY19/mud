@@ -153,8 +153,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           focusNode: _focusNode,
           decoration: InputDecoration(
             hintText: widget.hint ?? 'Inizia a digitare un indirizzo...',
+            hintStyle: const TextStyle(color: AppColors.textLightGrey),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppColors.surfaceElevated,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: border,
             enabledBorder: border,
@@ -170,6 +171,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                   )
                 : const Icon(Icons.place_outlined, color: AppColors.textGrey),
           ),
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         if (_loading)
           const Padding(
@@ -185,12 +187,12 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           const SizedBox(height: 8),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: Colors.black.withValues(alpha: 0.25),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

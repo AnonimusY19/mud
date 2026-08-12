@@ -18,8 +18,11 @@ class ProfileService {
   }
 
   Future<Profile?> fetchCurrentProfile() async {
-    final authUser = (await _client.auth.getUser()).user;
-    if (authUser == null) return null;
+    final userResponse = await _client.auth.getUser();
+    final authUser = userResponse.user;
+    if (authUser == null) {
+      throw StateError('Sessione non valida');
+    }
 
     final meta = Map<String, dynamic>.from(authUser.userMetadata ?? {});
     final metaNome = _metaString(meta, 'nome');
@@ -77,22 +80,44 @@ class ProfileService {
     required String cognome,
     required String telefono,
     required String codiceFiscale,
+    String? tipoAttivita,
   }) async {
     final userId = currentUserId;
     if (userId == null) return;
 
-    await _client.from('profiles').upsert({
-      'id': userId,
+    final identity = <String, dynamic>{
       'nome': nome.trim(),
       'cognome': cognome.trim(),
       'telefono': telefono.trim(),
       'codice_fiscale': codiceFiscale.trim().toUpperCase(),
-    });
+    };
+
+    final existing = await _client.from('profiles').select('id, tipo_attivita').eq('id', userId).maybeSingle();
+    if (existing == null) {
+      if (tipoAttivita == 'Fornitore' || tipoAttivita == 'Acquirente') {
+        identity['tipo_attivita'] = tipoAttivita;
+      }
+      await _client.from('profiles').insert({'id': userId, ...identity});
+    } else {
+      // tipo_attivita non si aggiorna dopo la creazione (salvo backfill del default legacy)
+      await _client.from('profiles').update(identity).eq('id', userId);
+      final currentTipo = (existing['tipo_attivita'] as String?) ?? '';
+      if ((tipoAttivita == 'Fornitore' || tipoAttivita == 'Acquirente') && currentTipo == 'Entrambi') {
+        try {
+          await _client
+              .from('profiles')
+              .update({'tipo_attivita': tipoAttivita})
+              .eq('id', userId)
+              .eq('tipo_attivita', 'Entrambi');
+        } catch (_) {
+          // Bloccato dal trigger DB: la scelta resta quella già salvata
+        }
+      }
+    }
   }
 
   Future<Profile> saveCompanyProfile({
     required String nomeAzienda,
-    required String tipoAttivita,
     required String descrizione,
     required Address address,
     String? logoUrl,
@@ -107,7 +132,6 @@ class ProfileService {
         .from('profiles')
         .update({
           'nome_azienda': nomeAzienda.trim(),
-          'tipo_attivita': tipoAttivita,
           'descrizione': descrizione.trim(),
           'logo_url': logoUrl,
           'modalita': modalita == AppMode.vendi ? 'vendi' : 'compra',

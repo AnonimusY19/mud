@@ -87,6 +87,7 @@ class _EditListingDialogState extends State<EditListingDialog> {
     final isNew = widget.listing == null;
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
@@ -100,8 +101,11 @@ class _EditListingDialogState extends State<EditListingDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(isNew ? 'Nuovo annuncio' : 'Modifica annuncio',
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.textGrey),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -141,11 +145,13 @@ class _EditListingDialogState extends State<EditListingDialog> {
                 onChanged: (v) => setState(() => _category = v ?? _category),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: AppColors.surfaceElevated,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
                 ),
+                dropdownColor: AppColors.surfaceElevated,
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 16),
               formLabel('Indirizzo'),
@@ -224,7 +230,7 @@ class _TypeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.white,
+          color: selected ? AppColors.primary : AppColors.surfaceElevated,
           border: Border.all(color: selected ? AppColors.primary : AppColors.border),
           borderRadius: BorderRadius.circular(12),
         ),

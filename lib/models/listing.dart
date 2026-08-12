@@ -13,6 +13,11 @@ class Listing {
   int quantity;
   String? imageUrl;
   Address address;
+  // Backing field nullable: dopo hot reload gli oggetti già in memoria possono avere null.
+  String? _companyName;
+
+  String get companyName => _companyName ?? '';
+  set companyName(String value) => _companyName = value;
 
   Listing({
     required this.id,
@@ -27,11 +32,43 @@ class Listing {
     required this.quantity,
     this.imageUrl,
     Address? address,
-  }) : address = address ?? Address(formattedAddress: location);
+    String companyName = '',
+  })  : address = address ?? Address(formattedAddress: location),
+        _companyName = companyName;
+
+  Listing copyWith({
+    String? companyName,
+    Address? address,
+    String? location,
+    String? imageUrl,
+  }) {
+    return Listing(
+      id: id,
+      userId: userId,
+      type: type,
+      title: title,
+      description: description,
+      category: category,
+      location: location ?? this.location,
+      price: price,
+      unit: unit,
+      quantity: quantity,
+      imageUrl: imageUrl ?? this.imageUrl,
+      address: address ?? this.address,
+      companyName: companyName ?? this.companyName,
+    );
+  }
 
   factory Listing.fromJson(Map<String, dynamic> json) {
     final address = Address.fromJson(json, formattedKey: 'location');
     final location = (json['location'] as String?) ?? '';
+
+    String companyName = '';
+    final profile = json['profiles'];
+    if (profile is Map) {
+      companyName = (profile['nome_azienda'] as String?) ?? '';
+    }
+
     return Listing(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -47,6 +84,7 @@ class Listing {
       address: address.formattedAddress.isNotEmpty
           ? address
           : address.copyWith(formattedAddress: location),
+      companyName: companyName,
     );
   }
 

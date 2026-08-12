@@ -5,6 +5,7 @@ import 'screens/listings_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/profile_screen.dart';
 import 'app_state.dart';
+import 'theme/app_colors.dart';
 import 'widgets/mud_bottom_nav.dart';
 import 'widgets/mud_header.dart';
 
@@ -42,7 +43,7 @@ class _MainShellState extends State<MainShell> {
         child: Column(
           children: [
             const MudHeader(),
-            const Divider(height: 1, thickness: 1),
+            const Divider(height: 1, thickness: 1, color: AppColors.border),
             Expanded(
               child: IndexedStack(index: _index, children: _pages),
             ),

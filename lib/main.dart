@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_state.dart';
-import 'main_shell.dart';
-import 'screens/auth_screen.dart';
 import 'theme/app_colors.dart';
+import 'widgets/app_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +22,15 @@ Future<void> main() async {
   await Supabase.initialize(
     url: url,
     publishableKey: key,
+  );
+
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.background,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
   );
 
   runApp(const MudApp());
@@ -46,19 +55,61 @@ class _MudAppState extends State<MudApp> {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          scaffoldBackgroundColor: Colors.white,
-          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: AppColors.background,
+          canvasColor: AppColors.background,
+          cardColor: AppColors.surface,
+          dividerColor: AppColors.border,
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.primary,
+            secondary: AppColors.primaryDark,
+            surface: AppColors.surface,
+            error: AppColors.danger,
+            onPrimary: Colors.white,
+            onSecondary: Colors.white,
+            onSurface: AppColors.textPrimary,
+            onError: Colors.white,
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: AppColors.background,
+            foregroundColor: AppColors.textPrimary,
+            elevation: 0,
+          ),
+          dialogTheme: DialogThemeData(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
+          snackBarTheme: const SnackBarThemeData(
+            backgroundColor: AppColors.surfaceElevated,
+            contentTextStyle: TextStyle(color: AppColors.textPrimary),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: AppColors.surfaceElevated,
+            hintStyle: const TextStyle(color: AppColors.textLightGrey),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+          ),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.primary),
+          iconTheme: const IconThemeData(color: AppColors.textGrey),
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: AppColors.textPrimary),
+            bodyMedium: TextStyle(color: AppColors.textPrimary),
+            titleLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800),
+          ),
         ),
-        home: StreamBuilder<AuthState>(
-          stream: Supabase.instance.client.auth.onAuthStateChange,
-          builder: (context, snapshot) {
-            final session = Supabase.instance.client.auth.currentSession;
-            if (session == null) {
-              return const AuthScreen();
-            }
-            return const MainShell();
-          },
-        ),
+        home: AppBootstrap(appState: _appState),
       ),
     );
   }

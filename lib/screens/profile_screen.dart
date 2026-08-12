@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_state.dart';
 import '../models/address.dart';
+import '../models/profile.dart';
 import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/address_autocomplete_field.dart';
@@ -26,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _descCtrl = TextEditingController();
   final _localitaCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
-  String _tipoAttivita = 'Entrambi';
+  final _tipoAttivitaCtrl = TextEditingController();
   String? _logoUrl;
   Address _address = const Address(formattedAddress: '');
   bool _loading = true;
@@ -35,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateFromAppState());
   }
 
   @override
@@ -48,35 +51,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _descCtrl.dispose();
     _localitaCtrl.dispose();
     _telefonoCtrl.dispose();
+    _tipoAttivitaCtrl.dispose();
     super.dispose();
+  }
+
+  void _applyProfile(Profile profile, {required String email}) {
+    _emailCtrl.text = email;
+    _nomeCtrl.text = profile.nome;
+    _cognomeCtrl.text = profile.cognome;
+    _codiceFiscaleCtrl.text = profile.codiceFiscale;
+    _nomeAziendaCtrl.text = profile.nomeAzienda;
+    _descCtrl.text = profile.descrizione;
+    _localitaCtrl.text = profile.localita;
+    _telefonoCtrl.text = profile.telefono;
+    _tipoAttivitaCtrl.text = profile.tipoAttivita;
+    _logoUrl = profile.logoUrl;
+    _address = profile.address.formattedAddress.isNotEmpty
+        ? profile.address
+        : Address(formattedAddress: profile.localita);
+  }
+
+  void _hydrateFromAppState() {
+    final appState = AppScope.of(context);
+    final cached = appState.profile;
+    if (cached != null) {
+      _applyProfile(cached, email: appState.currentUserEmail ?? '');
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    unawaited(_loadProfile());
   }
 
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
     try {
-      final profile = await _profileService.fetchCurrentProfile();
+      final profile = await AppScope.of(context).loadProfile();
       if (!mounted) return;
-      _emailCtrl.text = _profileService.currentUserEmail ?? '';
-      if (profile != null) {
-        _nomeCtrl.text = profile.nome;
-        _cognomeCtrl.text = profile.cognome;
-        _codiceFiscaleCtrl.text = profile.codiceFiscale;
-        _nomeAziendaCtrl.text = profile.nomeAzienda;
-        _descCtrl.text = profile.descrizione;
-        _localitaCtrl.text = profile.localita;
-        _telefonoCtrl.text = profile.telefono;
-        _tipoAttivita = profile.tipoAttivita;
-        _logoUrl = profile.logoUrl;
-        _address = profile.address.formattedAddress.isNotEmpty
-            ? profile.address
-            : Address(formattedAddress: profile.localita);
-        AppScope.of(context).setMode(profile.modalita);
-      }
+      _applyProfile(profile, email: AppScope.of(context).currentUserEmail ?? '');
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Impossibile caricare il profilo')),
         );
+        await Supabase.instance.client.auth.signOut();
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -91,14 +108,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _saving = true);
     try {
-      await _profileService.saveCompanyProfile(
+      final saved = await _profileService.saveCompanyProfile(
         nomeAzienda: _nomeAziendaCtrl.text,
-        tipoAttivita: _tipoAttivita,
         descrizione: _descCtrl.text,
         address: address,
         logoUrl: _logoUrl,
         modalita: appState.mode,
       );
+      // Mantieni i campi identità già in cache (save company non li riscrive tutti)
+      final merged = Profile(
+        id: saved.id,
+        nome: _nomeCtrl.text,
+        cognome: _cognomeCtrl.text,
+        codiceFiscale: _codiceFiscaleCtrl.text,
+        nomeAzienda: saved.nomeAzienda,
+        tipoAttivita: _tipoAttivitaCtrl.text.isNotEmpty ? _tipoAttivitaCtrl.text : saved.tipoAttivita,
+        descrizione: saved.descrizione,
+        localita: saved.localita,
+        telefono: _telefonoCtrl.text,
+        logoUrl: saved.logoUrl,
+        modalita: saved.modalita,
+        address: saved.address,
+      );
+      appState.setProfile(merged);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profilo salvato su Supabase')),
@@ -173,14 +205,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         formTextField(controller: _nomeAziendaCtrl),
         const SizedBox(height: 20),
         formLabel('Tipo attività'),
-        Row(
-          children: [
-            Expanded(child: _ActivityButton(label: 'Fornitore', selected: _tipoAttivita == 'Fornitore', onTap: () => setState(() => _tipoAttivita = 'Fornitore'))),
-            const SizedBox(width: 10),
-            Expanded(child: _ActivityButton(label: 'Acquirente', selected: _tipoAttivita == 'Acquirente', onTap: () => setState(() => _tipoAttivita = 'Acquirente'))),
-            const SizedBox(width: 10),
-            Expanded(child: _ActivityButton(label: 'Entrambi', selected: _tipoAttivita == 'Entrambi', onTap: () => setState(() => _tipoAttivita = 'Entrambi'))),
-          ],
+        formTextField(controller: _tipoAttivitaCtrl, readOnly: true),
+        const SizedBox(height: 8),
+        const Text(
+          'Scelto in fase di registrazione e non modificabile.',
+          style: TextStyle(color: AppColors.textLightGrey, fontSize: 12),
         ),
         const SizedBox(height: 20),
         formLabel('Descrizione'),
@@ -222,14 +251,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: Row(
             children: [
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Modalità', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text('Modalità', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
                     SizedBox(height: 2),
                     Text('Compra o vendi', style: TextStyle(color: AppColors.textGrey, fontSize: 13)),
                   ],
@@ -254,34 +287,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ActivityButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ActivityButton({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.white,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(color: selected ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
-        ),
-      ),
     );
   }
 }

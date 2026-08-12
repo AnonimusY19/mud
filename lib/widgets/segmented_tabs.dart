@@ -12,7 +12,11 @@ class SegmentedTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.surfaceGrey, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Row(
         children: List.generate(labels.length, (i) {
           final selected = i == index;
@@ -23,24 +27,15 @@ class SegmentedTabs extends StatelessWidget {
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: selected ? Colors.white : Colors.transparent,
+                  color: selected ? AppColors.primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: selected
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 6,
-                            offset: const Offset(0, 1),
-                          ),
-                        ]
-                      : [],
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   labels[i],
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: selected ? AppColors.primary : AppColors.textGrey,
+                    color: selected ? Colors.white : AppColors.textGrey,
                   ),
                 ),
               ),

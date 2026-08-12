@@ -9,11 +9,11 @@ class TypeBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isVendo = type == 'Vendo';
     final bg = isVendo ? AppColors.greenBg : AppColors.blueBg;
-    final fg = isVendo ? const Color(0xFF15803D) : const Color(0xFF1D4ED8);
+    final fg = isVendo ? AppColors.green : AppColors.blue;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(type, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 12)),
+      child: Text(type, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 11)),
     );
   }
 }

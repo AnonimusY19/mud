@@ -126,4 +126,25 @@ class Address {
       'place_id': placeId,
     };
   }
+
+  /// Città da mostrare in preview (mai l'indirizzo completo).
+  String get displayCity {
+    if (city.trim().isNotEmpty) return city.trim();
+
+    final parts = formattedAddress
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (parts.length >= 2) {
+      var candidate = parts[1];
+      // Rimuove CAP iniziale e sigla provincia finale (es. "20121 Milano MI")
+      candidate = candidate.replaceFirst(RegExp(r'^\d{5}\s*'), '');
+      candidate = candidate.replaceFirst(RegExp(r'\s+[A-Z]{2}$'), '');
+      if (candidate.trim().isNotEmpty) return candidate.trim();
+    }
+
+    return parts.isNotEmpty ? parts.first : '';
+  }
 }
