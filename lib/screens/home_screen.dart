@@ -143,7 +143,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         const SizedBox(height: 20),
-        if (items.isEmpty)
+        if (appState.listingsLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (items.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
             child: Center(child: Text('Nessun annuncio trovato', style: TextStyle(color: AppColors.textLightGrey))),

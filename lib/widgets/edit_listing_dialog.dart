@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/address.dart';
 import '../models/listing.dart';
 import '../theme/app_colors.dart';
+import 'address_autocomplete_field.dart';
 import 'form_fields.dart';
 
 class EditListingDialog extends StatefulWidget {
@@ -21,6 +23,7 @@ class _EditListingDialogState extends State<EditListingDialog> {
   late final TextEditingController _unitCtrl;
   late final TextEditingController _qtyCtrl;
   late final TextEditingController _imageCtrl;
+  late Address _address;
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class _EditListingDialogState extends State<EditListingDialog> {
     _unitCtrl = TextEditingController(text: l?.unit ?? '');
     _qtyCtrl = TextEditingController(text: l != null ? l.quantity.toString() : '');
     _imageCtrl = TextEditingController(text: l?.imageUrl ?? '');
+    _address = l?.address ?? Address(formattedAddress: l?.location ?? '');
   }
 
   @override
@@ -56,17 +60,24 @@ class _EditListingDialogState extends State<EditListingDialog> {
       );
       return;
     }
+
+    final address = _address.formattedAddress.trim().isNotEmpty
+        ? _address
+        : Address(formattedAddress: _locationCtrl.text.trim());
+
     final result = Listing(
-      id: widget.listing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.listing?.id ?? '',
+      userId: widget.listing?.userId ?? '',
       type: _type,
       title: _titleCtrl.text.trim(),
       description: _descCtrl.text.trim(),
       category: _category,
-      location: _locationCtrl.text.trim(),
+      location: address.formattedAddress,
       price: double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0,
       unit: _unitCtrl.text.trim(),
       quantity: int.tryParse(_qtyCtrl.text.trim()) ?? 0,
       imageUrl: _imageCtrl.text.trim().isEmpty ? null : _imageCtrl.text.trim(),
+      address: address,
     );
     Navigator.of(context).pop(result);
   }
@@ -121,39 +132,28 @@ class _EditListingDialogState extends State<EditListingDialog> {
               formLabel('Descrizione'),
               formTextField(controller: _descCtrl, maxLines: 3, hint: 'Descrivi il prodotto o servizio...'),
               const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        formLabel('Categoria'),
-                        DropdownButtonFormField<String>(
-                          value: _category,
-                          items: kCategories
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
-                              .toList(),
-                          onChanged: (v) => setState(() => _category = v ?? _category),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [formLabel('Località'), formTextField(controller: _locationCtrl, hint: 'Es. Firenze')],
-                    ),
-                  ),
-                ],
+              formLabel('Categoria'),
+              DropdownButtonFormField<String>(
+                value: _category,
+                items: kCategories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis)))
+                    .toList(),
+                onChanged: (v) => setState(() => _category = v ?? _category),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              formLabel('Indirizzo'),
+              AddressAutocompleteField(
+                controller: _locationCtrl,
+                initialAddress: _address,
+                hint: 'Es. Via Roma 10, Milano',
+                onAddressSelected: (address) => setState(() => _address = address),
               ),
               const SizedBox(height: 16),
               Row(

@@ -13,6 +13,9 @@ Widget formTextField({
   String? hint,
   int maxLines = 1,
   TextInputType? keyboardType,
+  bool obscureText = false,
+  bool readOnly = false,
+  Widget? suffixIcon,
 }) {
   final border = OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
@@ -20,16 +23,22 @@ Widget formTextField({
   );
   return TextField(
     controller: controller,
-    maxLines: maxLines,
+    maxLines: obscureText ? 1 : maxLines,
     keyboardType: keyboardType,
+    obscureText: obscureText,
+    readOnly: readOnly,
+    enableInteractiveSelection: !readOnly,
     decoration: InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: readOnly ? AppColors.surfaceGrey : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: border,
       enabledBorder: border,
-      focusedBorder: border.copyWith(borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+      focusedBorder: readOnly
+          ? border
+          : border.copyWith(borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+      suffixIcon: suffixIcon,
     ),
   );
 }

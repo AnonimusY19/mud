@@ -13,7 +13,7 @@ class ListingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = AppScope.of(context);
-    final listings = appState.listings;
+    final listings = appState.myListings;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -40,7 +40,25 @@ class ListingsScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        if (listings.isEmpty)
+        if (appState.listingsLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 60),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (appState.listingsError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60),
+            child: Center(
+              child: Column(
+                children: [
+                  Text(appState.listingsError!, style: const TextStyle(color: AppColors.danger)),
+                  const SizedBox(height: 12),
+                  TextButton(onPressed: appState.loadListings, child: const Text('Riprova')),
+                ],
+              ),
+            ),
+          )
+        else if (listings.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 60),
             child: Center(
@@ -64,10 +82,17 @@ class ListingsScreen extends StatelessWidget {
       builder: (_) => EditListingDialog(listing: listing),
     );
     if (result == null) return;
-    if (listing == null) {
-      appState.addListing(result);
-    } else {
-      appState.updateListing(result);
+    try {
+      if (listing == null) {
+        await appState.addListing(result);
+      } else {
+        await appState.updateListing(result);
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Errore nel salvataggio dell\'annuncio')),
+      );
     }
   }
 
@@ -83,6 +108,14 @@ class ListingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) appState.deleteListing(listing.id);
+    if (confirmed != true) return;
+    try {
+      await appState.deleteListing(listing.id);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Errore nell\'eliminazione dell\'annuncio')),
+      );
+    }
   }
 }

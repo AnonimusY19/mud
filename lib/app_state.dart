@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
-import 'data/mock_data.dart';
 import 'models/listing.dart';
+import 'services/listing_service.dart';
 
 enum AppMode { compra, vendi }
 
 class AppState extends ChangeNotifier {
+  AppState({ListingService? listingService}) : _listingService = listingService ?? ListingService();
+
+  final ListingService _listingService;
+
   AppMode mode = AppMode.compra;
-  final List<Listing> listings = List.of(mockListings);
+  final List<Listing> listings = [];
+  bool listingsLoading = false;
+  String? listingsError;
+
+  String? get currentUserId => _listingService.currentUserId;
+
+  List<Listing> get myListings {
+    final userId = currentUserId;
+    if (userId == null) return const [];
+    return listings.where((l) => l.userId == userId).toList();
+  }
 
   void setMode(AppMode value) {
     if (mode == value) return;
@@ -14,20 +28,40 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addListing(Listing listing) {
-    listings.insert(0, listing);
+  Future<void> loadListings() async {
+    listingsLoading = true;
+    listingsError = null;
     notifyListeners();
-  }
-
-  void updateListing(Listing listing) {
-    final index = listings.indexWhere((l) => l.id == listing.id);
-    if (index != -1) {
-      listings[index] = listing;
+    try {
+      final items = await _listingService.fetchAll();
+      listings
+        ..clear()
+        ..addAll(items);
+    } catch (_) {
+      listingsError = 'Impossibile caricare gli annunci';
+    } finally {
+      listingsLoading = false;
       notifyListeners();
     }
   }
 
-  void deleteListing(String id) {
+  Future<void> addListing(Listing listing) async {
+    final created = await _listingService.create(listing);
+    listings.insert(0, created);
+    notifyListeners();
+  }
+
+  Future<void> updateListing(Listing listing) async {
+    final updated = await _listingService.update(listing);
+    final index = listings.indexWhere((l) => l.id == updated.id);
+    if (index != -1) {
+      listings[index] = updated;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteListing(String id) async {
+    await _listingService.delete(id);
     listings.removeWhere((l) => l.id == id);
     notifyListeners();
   }

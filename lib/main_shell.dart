@@ -4,6 +4,7 @@ import 'screens/home_screen.dart';
 import 'screens/listings_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/profile_screen.dart';
+import 'app_state.dart';
 import 'widgets/mud_bottom_nav.dart';
 import 'widgets/mud_header.dart';
 
@@ -24,6 +25,14 @@ class _MainShellState extends State<MainShell> {
     ChatScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppScope.of(context).loadListings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
