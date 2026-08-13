@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/phone_auth_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/phone_number.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/form_fields.dart';
 
 // OTP SMS disabilitato: non collegato ad AuthScreen. Conservato per riattivarlo più avanti.
@@ -146,10 +147,12 @@ class _RegistrationOtpScreenState extends State<RegistrationOtpScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            const Center(child: AppLogo(size: 64, borderRadius: 16)),
+            const SizedBox(height: 12),
             const Text(
               'MUD',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.primary),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary),
             ),
             const SizedBox(height: 8),
             const Text(

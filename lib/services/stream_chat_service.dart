@@ -102,8 +102,8 @@ class StreamChatService {
       throw StateError('Non puoi contattare il tuo stesso annuncio.');
     }
 
-    final otherName = listing.companyName.trim().isNotEmpty
-        ? listing.companyName.trim()
+    final otherName = listing.displayCompanyName.trim().isNotEmpty
+        ? listing.displayCompanyName.trim()
         : 'Venditore';
 
     // Stream richiede che entrambi gli utenti esistano prima di creare il canale.
@@ -124,9 +124,9 @@ class StreamChatService {
       id: channelId,
       extraData: {
         'members': [currentUserId, listing.userId],
-        'name': listing.title,
+        'name': listing.displayTitle,
         'listing_id': listing.id,
-        'listing_title': listing.title,
+        'listing_title': listing.displayTitle,
         'listing_company': otherName,
         'image': listing.imageUrl,
       },

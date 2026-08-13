@@ -2,6 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_state.dart';
 import '../models/address.dart';
 import '../models/profile.dart';
+import '../utils/codice_sdi.dart';
+import '../utils/partita_iva.dart';
 
 class ProfileService {
   ProfileService({SupabaseClient? client}) : _client = client ?? Supabase.instance.client;
@@ -29,6 +31,9 @@ class ProfileService {
     final metaCognome = _metaString(meta, 'cognome');
     final metaTelefono = _metaString(meta, 'telefono');
     final metaCf = _metaString(meta, 'codice_fiscale').toUpperCase();
+    final metaAzienda = _metaString(meta, 'nome_azienda');
+    final metaPiva = PartitaIva.normalize(_metaString(meta, 'partita_iva'));
+    final metaSdi = CodiceSdi.normalize(_metaString(meta, 'codice_sdi'));
 
     var row = await _client.from('profiles').select().eq('id', authUser.id).maybeSingle();
 
@@ -40,6 +45,9 @@ class ProfileService {
         'cognome': metaCognome,
         'telefono': metaTelefono,
         'codice_fiscale': metaCf,
+        if (metaAzienda.isNotEmpty) 'nome_azienda': metaAzienda,
+        if (metaPiva.isNotEmpty) 'partita_iva': metaPiva,
+        if (metaSdi.isNotEmpty) 'codice_sdi': metaSdi,
       });
       row = await _client.from('profiles').upsert(patch).select().single();
     } else {
@@ -47,11 +55,17 @@ class ProfileService {
       final dbCognome = (row['cognome'] as String?)?.trim() ?? '';
       final dbTelefono = (row['telefono'] as String?)?.trim() ?? '';
       final dbCf = (row['codice_fiscale'] as String?)?.trim() ?? '';
+      final dbAzienda = (row['nome_azienda'] as String?)?.trim() ?? '';
+      final dbPiva = (row['partita_iva'] as String?)?.trim() ?? '';
+      final dbSdi = (row['codice_sdi'] as String?)?.trim() ?? '';
 
       if (dbNome.isEmpty && metaNome.isNotEmpty) patch['nome'] = metaNome;
       if (dbCognome.isEmpty && metaCognome.isNotEmpty) patch['cognome'] = metaCognome;
       if (dbTelefono.isEmpty && metaTelefono.isNotEmpty) patch['telefono'] = metaTelefono;
       if (dbCf.isEmpty && metaCf.isNotEmpty) patch['codice_fiscale'] = metaCf;
+      if (dbAzienda.isEmpty && metaAzienda.isNotEmpty) patch['nome_azienda'] = metaAzienda;
+      if (dbPiva.isEmpty && metaPiva.isNotEmpty) patch['partita_iva'] = metaPiva;
+      if (dbSdi.isEmpty && metaSdi.isNotEmpty) patch['codice_sdi'] = metaSdi;
 
       if (patch.isNotEmpty) {
         row = await _client.from('profiles').update(patch).eq('id', authUser.id).select().single();
@@ -64,7 +78,9 @@ class ProfileService {
       nome: profile.nome.isNotEmpty ? profile.nome : metaNome,
       cognome: profile.cognome.isNotEmpty ? profile.cognome : metaCognome,
       codiceFiscale: profile.codiceFiscale.isNotEmpty ? profile.codiceFiscale : metaCf,
-      nomeAzienda: profile.nomeAzienda,
+      nomeAzienda: profile.nomeAzienda.isNotEmpty ? profile.nomeAzienda : metaAzienda,
+      partitaIva: profile.partitaIva.isNotEmpty ? profile.partitaIva : metaPiva,
+      codiceSdi: profile.codiceSdi.isNotEmpty ? profile.codiceSdi : metaSdi,
       tipoAttivita: profile.tipoAttivita,
       descrizione: profile.descrizione,
       localita: profile.localita,
@@ -81,6 +97,9 @@ class ProfileService {
     required String telefono,
     required String codiceFiscale,
     String? nomeAzienda,
+    String? partitaIva,
+    String? codiceSdi,
+    Address? sedeLegale,
     String? tipoAttivita,
   }) async {
     final userId = currentUserId;
@@ -94,6 +113,15 @@ class ProfileService {
     };
     if (nomeAzienda != null && nomeAzienda.trim().isNotEmpty) {
       identity['nome_azienda'] = nomeAzienda.trim();
+    }
+    if (partitaIva != null && partitaIva.trim().isNotEmpty) {
+      identity['partita_iva'] = PartitaIva.normalize(partitaIva);
+    }
+    if (codiceSdi != null && codiceSdi.trim().isNotEmpty) {
+      identity['codice_sdi'] = CodiceSdi.normalize(codiceSdi);
+    }
+    if (sedeLegale != null && !sedeLegale.isEmpty) {
+      identity.addAll(sedeLegale.toProfileJson());
     }
 
     final existing = await _client.from('profiles').select('id, tipo_attivita').eq('id', userId).maybeSingle();

@@ -114,9 +114,9 @@ class _DetailsPane extends StatelessWidget {
     final formatted = listing.address.formattedAddress;
     final location = listing.location;
     final address = formatted.isNotEmpty ? formatted : location;
-    final companyRaw = listing.companyName.trim();
+    final companyRaw = listing.displayCompanyName.trim();
     final company = companyRaw.isNotEmpty ? companyRaw : 'Azienda non indicata';
-    final title = listing.title;
+    final title = listing.displayTitle;
     final category = listing.category;
     final unit = listing.unit;
     final description = listing.description;
@@ -128,18 +128,10 @@ class _DetailsPane extends StatelessWidget {
         title,
         style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.2, color: AppColors.textPrimary),
       ),
-      const SizedBox(height: 10),
-      Row(
-        children: [
-          const Icon(Icons.business_outlined, size: 18, color: AppColors.textGrey),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              company,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textGrey),
-            ),
-          ),
-        ],
+      const SizedBox(height: 6),
+      Text(
+        company,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textLightGrey),
       ),
       const SizedBox(height: 16),
       _InfoRow(label: 'Categoria', value: category),

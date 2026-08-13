@@ -33,6 +33,8 @@ begin
     telefono text not null,
     cf text not null,
     azienda text not null,
+    piva text not null,
+    sdi text not null,
     tipo public.activity_type not null,
     descrizione text not null,
     localita text not null,
@@ -48,24 +50,53 @@ begin
 
   insert into seed_users values
   (1, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'mario.rossi@mud.test', 'Mario', 'Rossi', '+393331000001', 'RSSMRA80A01H501U',
-   'Rossi Foods Srl', 'Fornitore', 'Produzione e distribuzione alimentari tipici.',
+   'Rossi Foods Srl', '12345678903', 'MUD0001', 'Fornitore', 'Produzione e distribuzione alimentari tipici.',
    'Via Roma 10, Milano, MI, Italia', 'Via Roma', '10', 'Milano', 'MI', '20121', 'Lombardia', 45.4642, 9.1900),
   (2, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', 'giulia.bianchi@mud.test', 'Giulia', 'Bianchi', '+393331000002', 'BNCGPP85C15F205E',
-   'Bianchi Tech Spa', 'Acquirente', 'Acquisti componenti elettronici per produzione.',
+   'Bianchi Tech Spa', '12345678903', 'MUD0002', 'Acquirente', 'Acquisti componenti elettronici per produzione.',
    'Corso Buenos Aires 45, Milano, MI, Italia', 'Corso Buenos Aires', '45', 'Milano', 'MI', '20124', 'Lombardia', 45.4780, 9.2100),
   (3, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', 'luca.verdi@mud.test', 'Luca', 'Verdi', '+393331000003', 'VRDPLA90D50L219V',
-   'Verdi Logistics', 'Fornitore', 'Logistica e trading materie prime.',
+   'Verdi Logistics', '12345678903', 'MUD0003', 'Fornitore', 'Logistica e trading materie prime.',
    'Via dell''Indipendenza 20, Bologna, BO, Italia', 'Via dell''Indipendenza', '20', 'Bologna', 'BO', '40121', 'Emilia-Romagna', 44.4949, 11.3426),
   (4, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4', 'sara.neri@mud.test', 'Sara', 'Neri', '+393331000004', 'NRELCU88E41A662S',
-   'Neri Fashion Lab', 'Fornitore', 'Abbigliamento e tessuti sostenibili.',
+   'Neri Fashion Lab', '12345678903', 'MUD0004', 'Fornitore', 'Abbigliamento e tessuti sostenibili.',
    'Via Tornabuoni 8, Firenze, FI, Italia', 'Via Tornabuoni', '8', 'Firenze', 'FI', '50123', 'Toscana', 43.7711, 11.2534),
   (5, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5', 'paolo.bruno@mud.test', 'Paolo', 'Bruno', '+393331000005', 'FRNFRC75H12D612E',
-   'Bruno Macchine Industriali', 'Acquirente', 'Macchinari e servizi di manutenzione.',
+   'Bruno Macchine Industriali', '12345678903', 'MUD0005', 'Acquirente', 'Macchinari e servizi di manutenzione.',
    'Via Po 15, Torino, TO, Italia', 'Via Po', '15', 'Torino', 'TO', '10123', 'Piemonte', 45.0650, 7.6910);
 
   for u in select * from seed_users order by idx loop
     if exists (select 1 from auth.users where email = u.email) then
-      raise notice 'Utente già presente, skip: %', u.email;
+      -- Aggiorna comunque nome azienda / profilo (utile se seed già eseguito).
+      update public.profiles
+      set
+        nome = u.nome,
+        cognome = u.cognome,
+        telefono = u.telefono,
+        codice_fiscale = u.cf,
+        nome_azienda = u.azienda,
+        partita_iva = u.piva,
+        codice_sdi = u.sdi,
+        descrizione = u.descrizione,
+        localita = u.localita,
+        address = u.localita,
+        street = u.street,
+        street_number = u.street_number,
+        city = u.city,
+        province = u.province,
+        postal_code = u.postal_code,
+        region = u.region,
+        country = 'IT',
+        latitude = u.lat,
+        longitude = u.lng
+      where id = u.id;
+
+      update public.listings l
+      set title = regexp_replace(l.title, ' — ' || u.azienda || '$', '')
+      where l.user_id = u.id
+        and l.title like '% — ' || u.azienda;
+
+      raise notice 'Utente già presente, aggiornato profilo/titoli: %', u.email;
       continue;
     end if;
 
@@ -85,6 +116,8 @@ begin
         'telefono', u.telefono,
         'codice_fiscale', u.cf,
         'nome_azienda', u.azienda,
+        'partita_iva', u.piva,
+        'codice_sdi', u.sdi,
         'tipo_attivita', u.tipo::text
       ),
       now(), now(), '', '', '', ''
@@ -107,6 +140,8 @@ begin
       telefono = u.telefono,
       codice_fiscale = u.cf,
       nome_azienda = u.azienda,
+      partita_iva = u.piva,
+      codice_sdi = u.sdi,
       descrizione = u.descrizione,
       localita = u.localita,
       address = u.localita,
@@ -132,7 +167,7 @@ begin
       ) values (
         u.id,
         v_types[i],
-        v_titles[i] || ' — ' || u.azienda,
+        v_titles[i],
         'Annuncio di test #' || i || ' per ' || u.azienda || ' (' || v_cats[i] || ').',
         v_cats[i],
         case i

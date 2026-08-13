@@ -14,7 +14,8 @@ class ListingService {
         .map((row) => Listing.fromJson(Map<String, dynamic>.from(row as Map)))
         .toList();
 
-    final companies = await _loadCompanyNames();
+    final userIds = listings.map((l) => l.userId).toSet().toList();
+    final companies = await _loadCompanyNames(userIds);
 
     return [
       for (final listing in listings) listing.copyWith(companyName: companies[listing.userId] ?? ''),
@@ -22,7 +23,9 @@ class ListingService {
   }
 
   /// Carica id → nome_azienda. Usa RPC security definer; fallback su select profiles.
-  Future<Map<String, String>> _loadCompanyNames() async {
+  Future<Map<String, String>> _loadCompanyNames(List<String> userIds) async {
+    if (userIds.isEmpty) return {};
+
     try {
       final rows = await _client.rpc('marketplace_company_names');
       return {
@@ -34,7 +37,10 @@ class ListingService {
     }
 
     try {
-      final profileRows = await _client.from('profiles').select('id, nome_azienda');
+      final profileRows = await _client
+          .from('profiles')
+          .select('id, nome_azienda')
+          .inFilter('id', userIds);
       return {
         for (final row in (profileRows as List))
           (row as Map)['id'].toString(): (row['nome_azienda'] as String?)?.trim() ?? '',

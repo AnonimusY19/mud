@@ -8,6 +8,7 @@ import '../models/profile.dart';
 import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/address_autocomplete_field.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/mode_toggle.dart';
 import '../widgets/section_header.dart';
@@ -26,6 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _cognomeCtrl = TextEditingController();
   final _codiceFiscaleCtrl = TextEditingController();
   final _nomeAziendaCtrl = TextEditingController();
+  final _partitaIvaCtrl = TextEditingController();
+  final _codiceSdiCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _localitaCtrl = TextEditingController();
   final _telefonoCtrl = TextEditingController();
@@ -48,6 +51,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _cognomeCtrl.dispose();
     _codiceFiscaleCtrl.dispose();
     _nomeAziendaCtrl.dispose();
+    _partitaIvaCtrl.dispose();
+    _codiceSdiCtrl.dispose();
     _descCtrl.dispose();
     _localitaCtrl.dispose();
     _telefonoCtrl.dispose();
@@ -61,6 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _cognomeCtrl.text = profile.cognome;
     _codiceFiscaleCtrl.text = profile.codiceFiscale;
     _nomeAziendaCtrl.text = profile.nomeAzienda;
+    _partitaIvaCtrl.text = profile.partitaIva;
+    _codiceSdiCtrl.text = profile.codiceSdi;
     _descCtrl.text = profile.descrizione;
     _localitaCtrl.text = profile.localita;
     _telefonoCtrl.text = profile.telefono;
@@ -122,6 +129,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         cognome: _cognomeCtrl.text,
         codiceFiscale: _codiceFiscaleCtrl.text,
         nomeAzienda: saved.nomeAzienda,
+        partitaIva: _partitaIvaCtrl.text,
+        codiceSdi: _codiceSdiCtrl.text,
         tipoAttivita: _tipoAttivitaCtrl.text.isNotEmpty ? _tipoAttivitaCtrl.text : saved.tipoAttivita,
         descrizione: saved.descrizione,
         localita: saved.localita,
@@ -163,23 +172,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SectionHeader(title: 'Profilo', subtitle: 'Gestisci la tua azienda e le impostazioni'),
         const SizedBox(height: 24),
         Center(
-          child: Container(
-            width: 96,
-            height: 96,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF34D399), Color(0xFF059669)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: _logoUrl != null && _logoUrl!.isNotEmpty
-                ? ClipOval(
-                    child: Image.network(_logoUrl!, fit: BoxFit.cover, width: 96, height: 96),
-                  )
-                : const Icon(Icons.business, color: Colors.white, size: 40),
-          ),
+          child: _logoUrl != null && _logoUrl!.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.network(
+                    _logoUrl!,
+                    fit: BoxFit.cover,
+                    width: 96,
+                    height: 96,
+                    errorBuilder: (_, _, _) => const AppLogo(size: 96, borderRadius: 24),
+                  ),
+                )
+              : const AppLogo(size: 96, borderRadius: 24),
         ),
         const SizedBox(height: 28),
         const Text('DATI PERSONALI', style: TextStyle(color: AppColors.textLightGrey, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.6)),
@@ -201,21 +205,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 28),
         const Text('AZIENDA', style: TextStyle(color: AppColors.textLightGrey, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.6)),
         const SizedBox(height: 12),
-        formLabel('Nome azienda'),
-        formTextField(controller: _nomeAziendaCtrl),
+        formLabel('Ragione sociale'),
+        formTextField(controller: _nomeAziendaCtrl, readOnly: true),
+        const SizedBox(height: 20),
+        formLabel('Partita IVA'),
+        formTextField(controller: _partitaIvaCtrl, readOnly: true),
+        const SizedBox(height: 20),
+        formLabel('Codice destinatario SDI'),
+        formTextField(controller: _codiceSdiCtrl, readOnly: true),
         const SizedBox(height: 20),
         formLabel('Tipo attività'),
         formTextField(controller: _tipoAttivitaCtrl, readOnly: true),
         const SizedBox(height: 8),
         const Text(
-          'Scelto in fase di registrazione e non modificabile.',
+          'Dati fiscali e ruolo scelti in registrazione: non modificabili.',
           style: TextStyle(color: AppColors.textLightGrey, fontSize: 12),
         ),
         const SizedBox(height: 20),
         formLabel('Descrizione'),
         formTextField(controller: _descCtrl, maxLines: 4, hint: 'Descrivi la tua attività...'),
         const SizedBox(height: 20),
-        formLabel('Indirizzo'),
+        formLabel('Indirizzo di sede legale'),
         AddressAutocompleteField(
           controller: _localitaCtrl,
           initialAddress: _address,

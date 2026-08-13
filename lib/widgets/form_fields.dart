@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-Widget formLabel(String text) {
+Widget formLabel(String text, {bool compact = false}) {
   return Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary)),
+    padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: compact ? 12.5 : 14,
+        color: AppColors.textPrimary,
+      ),
+    ),
   );
 }
 
@@ -15,6 +22,7 @@ Widget formTextField({
   TextInputType? keyboardType,
   bool obscureText = false,
   bool readOnly = false,
+  bool dense = false,
   Widget? suffixIcon,
 }) {
   final border = OutlineInputBorder(
@@ -28,14 +36,15 @@ Widget formTextField({
     obscureText: obscureText,
     readOnly: readOnly,
     enableInteractiveSelection: !readOnly,
-    style: const TextStyle(color: AppColors.textPrimary),
+    style: TextStyle(color: AppColors.textPrimary, fontSize: dense ? 14 : 15),
     cursorColor: AppColors.primary,
     decoration: InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: AppColors.textLightGrey),
       filled: true,
       fillColor: readOnly ? AppColors.surface : AppColors.surfaceElevated,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      isDense: dense,
+      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: dense ? 10 : 12),
       border: border,
       enabledBorder: border,
       focusedBorder: readOnly

@@ -19,6 +19,30 @@ class Listing {
   String get companyName => _companyName ?? '';
   set companyName(String value) => _companyName = value;
 
+  /// Titolo prodotto senza azienda (i seed usavano `Prodotto — Azienda`).
+  String get displayTitle {
+    final parsed = _parseTitleAndCompany();
+    return parsed.$1;
+  }
+
+  /// Nome azienda da profilo, oppure estratto dal titolo seed.
+  String get displayCompanyName {
+    final fromProfile = companyName.trim();
+    if (fromProfile.isNotEmpty) return fromProfile;
+    return _parseTitleAndCompany().$2;
+  }
+
+  (String, String) _parseTitleAndCompany() {
+    const sep = ' — ';
+    final raw = title.trim();
+    final i = raw.lastIndexOf(sep);
+    if (i <= 0) return (raw, '');
+    final product = raw.substring(0, i).trim();
+    final company = raw.substring(i + sep.length).trim();
+    if (product.isEmpty || company.isEmpty) return (raw, '');
+    return (product, company);
+  }
+
   Listing({
     required this.id,
     required this.userId,
