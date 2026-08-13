@@ -223,57 +223,58 @@ class _AuthScreenState extends State<AuthScreen> {
               _info = null;
             });
             return;
-          case ViesValid():
+          case ViesValid(:final verificationId, :final vatNumber):
+            // ok — usa verificationId nel signup
+            final nome = _nomeCtrl.text.trim();
+            final cognome = _cognomeCtrl.text.trim();
+            final telefono = PhoneNumber.normalize(_telefonoCtrl.text)!;
+            final codiceFiscale = _codiceFiscaleCtrl.text.trim().toUpperCase();
+            final nomeAzienda = _nomeAziendaCtrl.text.trim();
+            final partitaIva = vatNumber;
+            final codiceSdi = CodiceSdi.normalize(_codiceSdiCtrl.text);
+            final sedeLegale = _sedeLegale!;
+            final tipoAttivita = _tipoAttivita!;
+
+            final response = await auth.signUp(
+              email: email,
+              password: password,
+              data: {
+                'nome': nome,
+                'cognome': cognome,
+                'telefono': telefono,
+                'codice_fiscale': codiceFiscale,
+                'nome_azienda': nomeAzienda,
+                'partita_iva': partitaIva,
+                'codice_sdi': codiceSdi,
+                'tipo_attivita': tipoAttivita,
+                'vies_verification_id': verificationId,
+                ...sedeLegale.toProfileJson().map((k, v) => MapEntry(k, v?.toString() ?? '')),
+              },
+            );
+
+            if (response.session != null) {
+              await ProfileService().saveIdentityFields(
+                nome: nome,
+                cognome: cognome,
+                telefono: telefono,
+                codiceFiscale: codiceFiscale,
+                nomeAzienda: nomeAzienda,
+                partitaIva: partitaIva,
+                codiceSdi: codiceSdi,
+                sedeLegale: sedeLegale,
+                tipoAttivita: tipoAttivita,
+              );
+            }
+
+            if (!mounted) return;
+            if (response.session == null) {
+              setState(() {
+                _isLogin = true;
+                _info =
+                    'Registrazione riuscita. Controlla la casella email e conferma l\'account, poi accedi.';
+              });
+            }
             break;
-        }
-
-        final nome = _nomeCtrl.text.trim();
-        final cognome = _cognomeCtrl.text.trim();
-        final telefono = PhoneNumber.normalize(_telefonoCtrl.text)!;
-        final codiceFiscale = _codiceFiscaleCtrl.text.trim().toUpperCase();
-        final nomeAzienda = _nomeAziendaCtrl.text.trim();
-        final partitaIva = PartitaIva.normalize(_partitaIvaCtrl.text);
-        final codiceSdi = CodiceSdi.normalize(_codiceSdiCtrl.text);
-        final sedeLegale = _sedeLegale!;
-        final tipoAttivita = _tipoAttivita!;
-
-        final response = await auth.signUp(
-          email: email,
-          password: password,
-          data: {
-            'nome': nome,
-            'cognome': cognome,
-            'telefono': telefono,
-            'codice_fiscale': codiceFiscale,
-            'nome_azienda': nomeAzienda,
-            'partita_iva': partitaIva,
-            'codice_sdi': codiceSdi,
-            'tipo_attivita': tipoAttivita,
-            'vies_verified': true,
-            ...sedeLegale.toProfileJson().map((k, v) => MapEntry(k, v?.toString() ?? '')),
-          },
-        );
-
-        if (response.session != null) {
-          await ProfileService().saveIdentityFields(
-            nome: nome,
-            cognome: cognome,
-            telefono: telefono,
-            codiceFiscale: codiceFiscale,
-            nomeAzienda: nomeAzienda,
-            partitaIva: partitaIva,
-            codiceSdi: codiceSdi,
-            sedeLegale: sedeLegale,
-            tipoAttivita: tipoAttivita,
-          );
-        }
-
-        if (!mounted) return;
-        if (response.session == null) {
-          setState(() {
-            _isLogin = true;
-            _info = 'Registrazione riuscita. Controlla la casella email e conferma l\'account, poi accedi.';
-          });
         }
       }
     } catch (e) {
@@ -650,7 +651,7 @@ class _FormPane extends StatelessWidget {
                   formTextField(controller: partitaIvaCtrl, hint: '12345678901', keyboardType: TextInputType.number, dense: true),
                   const SizedBox(height: 4),
                   const Text(
-                    'Verificata con VIES (UE) al momento della registrazione.',
+                    'Verificata sul server via VIES (UE) al momento della registrazione.',
                     style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
                   ),
                 ],
@@ -748,7 +749,7 @@ class _FormPane extends StatelessWidget {
           formTextField(controller: partitaIvaCtrl, hint: '12345678901', keyboardType: TextInputType.number),
           const SizedBox(height: 4),
           const Text(
-            'Verificata con VIES (UE) al momento della registrazione.',
+            'Verificata sul server via VIES (UE) al momento della registrazione.',
             style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
           ),
           SizedBox(height: gap),

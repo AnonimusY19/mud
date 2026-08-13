@@ -55,7 +55,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: EmptyState(
                   icon: Icons.chat_bubble_outline,
                   title: 'Chat non configurata',
-                  subtitle: 'Aggiungi STREAM_API_KEY e STREAM_API_SECRET in .env, poi riaccedi',
+                  subtitle: 'Configura STREAM_API_KEY e deploya la function stream-token, poi riaccedi',
                 ),
               ),
             ),

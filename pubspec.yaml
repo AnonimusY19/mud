@@ -38,7 +38,14 @@ dependencies:
   flutter_dotenv: ^6.0.1
   http: ^1.6.0
   stream_chat_flutter: ^10.2.0
-  crypto: ^3.0.7
+  # Playback audio su Linux/Windows (Stream Chat usa just_audio).
+  just_audio_media_kit: ^2.1.0
+  media_kit_libs_linux: any
+
+dependency_overrides:
+  # Patch: allinea sample rate WAV al AudioContext del browser (evita rumore basso sui vocali web).
+  record_web:
+    path: packages/record_web
 
 dev_dependencies:
   flutter_test:

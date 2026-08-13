@@ -11,6 +11,7 @@ declare
   v_password text := crypt('MudTest123!', gen_salt('bf'));
   u record;
   i int;
+  v_vies_id uuid;
   v_cats text[] := array['Alimentari', 'Elettronica', 'Abbigliamento', 'Materie Prime', 'Macchinari'];
   v_types text[] := array['Vendo', 'Cerco', 'Vendo', 'Vendo', 'Cerco'];
   v_titles text[] := array[
@@ -68,15 +69,16 @@ begin
   for u in select * from seed_users order by idx loop
     if exists (select 1 from auth.users where email = u.email) then
       -- Aggiorna comunque nome azienda / profilo (utile se seed già eseguito).
+      -- Nota: campi fiscali già valorizzati restano bloccati dal trigger di sicurezza.
       update public.profiles
       set
-        nome = u.nome,
-        cognome = u.cognome,
+        nome = case when coalesce(trim(nome), '') = '' then u.nome else nome end,
+        cognome = case when coalesce(trim(cognome), '') = '' then u.cognome else cognome end,
         telefono = u.telefono,
-        codice_fiscale = u.cf,
+        codice_fiscale = case when coalesce(trim(codice_fiscale), '') = '' then u.cf else codice_fiscale end,
         nome_azienda = u.azienda,
-        partita_iva = u.piva,
-        codice_sdi = u.sdi,
+        partita_iva = case when coalesce(trim(partita_iva), '') = '' then u.piva else partita_iva end,
+        codice_sdi = case when coalesce(trim(codice_sdi), '') = '' then u.sdi else codice_sdi end,
         descrizione = u.descrizione,
         localita = u.localita,
         address = u.localita,
@@ -100,6 +102,11 @@ begin
       continue;
     end if;
 
+    -- Verifica VIES fittizia per soddisfare handle_new_user (solo seed).
+    insert into public.vat_verifications (partita_iva, name, expires_at)
+    values (u.piva, u.azienda, now() + interval '1 day')
+    returning id into v_vies_id;
+
     insert into auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, phone, phone_confirmed_at,
@@ -118,7 +125,20 @@ begin
         'nome_azienda', u.azienda,
         'partita_iva', u.piva,
         'codice_sdi', u.sdi,
-        'tipo_attivita', u.tipo::text
+        'tipo_attivita', u.tipo::text,
+        'vies_verification_id', v_vies_id::text,
+        'localita', u.localita,
+        'address', u.localita,
+        'street', u.street,
+        'street_number', u.street_number,
+        'city', u.city,
+        'province', u.province,
+        'postal_code', u.postal_code,
+        'region', u.region,
+        'country', 'IT',
+        'latitude', u.lat::text,
+        'longitude', u.lng::text,
+        'place_id', 'seed-' || u.idx::text
       ),
       now(), now(), '', '', '', ''
     );

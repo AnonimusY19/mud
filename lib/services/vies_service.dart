@@ -1,9 +1,7 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/partita_iva.dart';
 
-/// Esito verifica VIES (VAT Information Exchange System).
+/// Esito verifica VIES (via Supabase Edge Function `verify-vat`).
 sealed class ViesResult {
   const ViesResult();
 }
@@ -12,9 +10,11 @@ class ViesValid extends ViesResult {
   final String? name;
   final String? address;
   final String vatNumber;
+  final String verificationId;
 
   const ViesValid({
     required this.vatNumber,
+    required this.verificationId,
     this.name,
     this.address,
   });
@@ -30,18 +30,12 @@ class ViesUnavailable extends ViesResult {
   const ViesUnavailable(this.message);
 }
 
-/// Client REST ufficiale VIES (Commissione Europea).
+/// Client Flutter → Edge Function `verify-vat` → VIES UE.
 class ViesService {
-  ViesService({http.Client? client}) : _client = client ?? http.Client();
+  ViesService({SupabaseClient? client}) : _client = client ?? Supabase.instance.client;
 
-  final http.Client _client;
+  final SupabaseClient _client;
 
-  static final _uri = Uri.parse(
-    'https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number',
-  );
-
-  /// Verifica una Partita IVA italiana su VIES.
-  /// Prima applica la validazione formale locale, poi interroga VIES.
   Future<ViesResult> checkItalianVat(String raw) async {
     final formatError = PartitaIva.validate(raw);
     if (formatError != null) {
@@ -51,73 +45,78 @@ class ViesService {
     final vatNumber = PartitaIva.normalize(raw);
 
     try {
-      final response = await _client
-          .post(
-            _uri,
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'countryCode': 'IT',
-              'vatNumber': vatNumber,
-            }),
-          )
-          .timeout(const Duration(seconds: 12));
+      final response = await _client.functions.invoke(
+        'verify-vat',
+        body: {
+          'partitaIva': vatNumber,
+          'countryCode': 'IT',
+        },
+      );
 
-      if (response.statusCode == 400) {
-        return const ViesInvalid('Partita IVA non riconosciuta da VIES');
-      }
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return ViesUnavailable(
-          'Servizio VIES non disponibile (HTTP ${response.statusCode}). Riprova tra poco.',
-        );
-      }
-
-      final data = jsonDecode(response.body);
+      final data = response.data;
       if (data is! Map) {
-        return const ViesUnavailable('Risposta VIES non valida. Riprova.');
+        return const ViesUnavailable('Risposta del server non valida. Riprova.');
       }
 
       final map = Map<String, dynamic>.from(data);
-      final userError = (map['userError'] as String?)?.trim();
-      if (userError != null &&
-          userError.isNotEmpty &&
-          userError.toUpperCase() != 'VALID' &&
-          userError.toUpperCase() != 'NONE') {
-        // MS_UNAVAILABLE, TIMEOUT, ecc.
-        if (userError.toUpperCase().contains('UNAVAILABLE') ||
-            userError.toUpperCase().contains('TIMEOUT') ||
-            userError.toUpperCase().contains('MS_MAX')) {
-          return ViesUnavailable(
-            'Archivio IVA italiano temporaneamente non raggiungibile via VIES. Riprova tra poco.',
-          );
-        }
-        return ViesInvalid('Partita IVA non valida secondo VIES ($userError)');
-      }
+      final status = (map['status'] as String?)?.toLowerCase() ?? '';
+      final message = (map['message'] as String?)?.trim();
 
-      final valid = map['valid'] == true || map['isValid'] == true;
-      if (!valid) {
-        return const ViesInvalid(
-          'Partita IVA non attiva o non presente in VIES',
+      switch (status) {
+        case 'valid':
+          final verificationId = (map['verificationId'] as String?)?.trim() ?? '';
+          if (verificationId.isEmpty) {
+            return const ViesUnavailable(
+              'Verifica VIES incompleta (manca verificationId). Aggiorna la Edge Function.',
+            );
+          }
+          return ViesValid(
+            vatNumber: (map['vatNumber'] as String?)?.trim().isNotEmpty == true
+                ? (map['vatNumber'] as String).trim()
+                : vatNumber,
+            verificationId: verificationId,
+            name: (map['name'] as String?)?.trim(),
+            address: (map['address'] as String?)?.trim(),
+          );
+        case 'invalid':
+          return ViesInvalid(
+            message?.isNotEmpty == true
+                ? message!
+                : 'Partita IVA non attiva o non presente in VIES',
+          );
+        case 'unavailable':
+        case 'error':
+          return ViesUnavailable(
+            message?.isNotEmpty == true
+                ? message!
+                : 'Servizio VIES non disponibile. Riprova tra poco.',
+          );
+        default:
+          return const ViesUnavailable(
+            'Risposta VIES non riconosciuta. Riprova.',
+          );
+      }
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map && details['message'] != null) {
+        return ViesUnavailable(details['message'].toString());
+      }
+      if (e.status == 404) {
+        return const ViesUnavailable(
+          'Funzione verify-vat non trovata. Esegui: npx supabase functions deploy verify-vat',
         );
       }
-
-      final name = (map['name'] as String?)?.trim();
-      final address = (map['address'] as String?)?.trim();
-      return ViesValid(
-        vatNumber: vatNumber,
-        name: (name == null || name == '---') ? null : name,
-        address: (address == null || address == '---') ? null : address,
-      );
-    } on http.ClientException {
-      return const ViesUnavailable(
-        'Impossibile contattare VIES. Controlla la connessione e riprova.',
+      if (e.status == 429) {
+        return const ViesUnavailable(
+          'Troppe verifiche VIES. Riprova tra qualche minuto.',
+        );
+      }
+      return ViesUnavailable(
+        'Verifica VIES non riuscita (HTTP ${e.status}). Riprova.',
       );
     } catch (_) {
       return const ViesUnavailable(
-        'Verifica VIES non riuscita. Controlla la connessione e riprova.',
+        'Impossibile contattare il server per la verifica VIES. Riprova.',
       );
     }
   }

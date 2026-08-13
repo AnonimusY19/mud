@@ -1,14 +1,11 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:stream_chat_flutter/stream_chat_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/listing.dart';
 import '../models/profile.dart';
-import '../utils/stream_token.dart';
 
-/// Client Stream Chat condiviso (1:1 per annuncio).
+/// Client Stream Chat condiviso (token e upsert solo via Edge Function).
 class StreamChatService {
   StreamChatService._();
   static final StreamChatService instance = StreamChatService._();
@@ -19,30 +16,34 @@ class StreamChatService {
   StreamChatClient get client {
     final c = _client;
     if (c == null) {
-      throw StateError('Stream Chat non inizializzato. Controlla STREAM_API_KEY in .env');
+      throw StateError('Stream Chat non inizializzato');
     }
     return c;
   }
 
   bool get isReady => _client != null && _client!.state.currentUser != null;
 
-  String? get _apiKey => dotenv.env['STREAM_API_KEY']?.trim();
-  String? get _apiSecret => dotenv.env['STREAM_API_SECRET']?.trim();
-
+  /// Solo la API key pubblica resta in app; la secret sta sul server.
   bool get isConfigured {
-    final key = _apiKey;
-    final secret = _apiSecret;
-    return key != null &&
-        key.isNotEmpty &&
-        key != 'your-stream-api-key' &&
-        secret != null &&
-        secret.isNotEmpty &&
-        secret != 'your-stream-api-secret';
+    final key = dotenv.env['STREAM_API_KEY']?.trim();
+    return key != null && key.isNotEmpty && key != 'your-stream-api-key';
+  }
+
+  Future<Map<String, dynamic>> _invokeStreamToken(Map<String, dynamic> body) async {
+    final response = await Supabase.instance.client.functions.invoke(
+      'stream-token',
+      body: body,
+    );
+    final data = response.data;
+    if (data is! Map) {
+      throw StateError('Risposta stream-token non valida');
+    }
+    return Map<String, dynamic>.from(data);
   }
 
   Future<void> connect(Profile profile) async {
     if (!isConfigured) {
-      debugPrint('Stream Chat: STREAM_API_KEY / STREAM_API_SECRET non configurati');
+      debugPrint('Stream Chat: STREAM_API_KEY non configurata');
       return;
     }
     if (_connecting) return;
@@ -52,17 +53,25 @@ class StreamChatService {
     try {
       await disconnect();
 
-      final apiKey = _apiKey!;
-      final apiSecret = _apiSecret!;
-      _client = StreamChatClient(apiKey, logLevel: Level.WARNING);
-
       final displayName = [
         if (profile.nomeAzienda.trim().isNotEmpty) profile.nomeAzienda.trim(),
         if (profile.nome.trim().isNotEmpty || profile.cognome.trim().isNotEmpty)
           '${profile.nome} ${profile.cognome}'.trim(),
       ].where((e) => e.isNotEmpty).join(' · ');
 
-      final token = createStreamUserToken(userId: profile.id, apiSecret: apiSecret);
+      final payload = await _invokeStreamToken({
+        'action': 'token',
+        'name': displayName.isNotEmpty ? displayName : profile.id,
+        if (profile.logoUrl != null && profile.logoUrl!.isNotEmpty) 'image': profile.logoUrl,
+      });
+
+      final apiKey = (payload['apiKey'] as String?)?.trim();
+      final token = (payload['token'] as String?)?.trim();
+      if (apiKey == null || apiKey.isEmpty || token == null || token.isEmpty) {
+        throw StateError('Token Stream non ricevuto dal server');
+      }
+
+      _client = StreamChatClient(apiKey, logLevel: Level.WARNING);
       await _client!.connectUser(
         User(
           id: profile.id,
@@ -96,7 +105,7 @@ class StreamChatService {
     required String currentUserId,
   }) async {
     if (!isReady) {
-      throw StateError('Chat non disponibile. Configura Stream e riprova ad accedere.');
+      throw StateError('Chat non disponibile. Riprova ad accedere.');
     }
     if (listing.userId == currentUserId) {
       throw StateError('Non puoi contattare il tuo stesso annuncio.');
@@ -106,7 +115,6 @@ class StreamChatService {
         ? listing.displayCompanyName.trim()
         : 'Venditore';
 
-    // Stream richiede che entrambi gli utenti esistano prima di creare il canale.
     await _ensureStreamUser(
       userId: listing.userId,
       name: otherName,
@@ -136,49 +144,22 @@ class StreamChatService {
     return channel;
   }
 
-  /// Crea/aggiorna un utente su Stream (server JWT) se non ha mai fatto login chat.
   Future<void> _ensureStreamUser({
     required String userId,
     required String name,
     String? image,
   }) async {
-    final apiKey = _apiKey;
-    final apiSecret = _apiSecret;
-    if (apiKey == null || apiSecret == null) {
-      throw StateError('Stream non configurato');
-    }
-
-    final token = createStreamServerToken(apiSecret: apiSecret);
-    final uri = Uri.parse(
-      'https://chat.stream-io-api.com/users?api_key=$apiKey',
-    );
-    final body = {
-      'users': {
-        userId: {
-          'id': userId,
-          'name': name,
-          if (image != null && image.isNotEmpty) 'image': image,
-        },
-      },
-    };
-
-    final response = await http.post(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token,
-        'Stream-Auth-Type': 'jwt',
-      },
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      debugPrint('Stream upsert user failed: ${response.statusCode} ${response.body}');
+    final payload = await _invokeStreamToken({
+      'action': 'ensure-user',
+      'ensureUserId': userId,
+      'ensureName': name,
+      if (image != null && image.isNotEmpty) 'ensureImage': image,
+    });
+    if (payload['ok'] != true) {
       throw StateError('Impossibile preparare la chat con il venditore.');
     }
   }
 
-  /// ID canale stabile e <= 64 caratteri (limite Stream).
   String _channelIdForListing({
     required String listingId,
     required String userA,

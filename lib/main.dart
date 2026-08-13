@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_state.dart';
 import 'theme/app_colors.dart';
@@ -8,6 +10,12 @@ import 'widgets/app_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // just_audio non ha plugin nativo su Linux: serve media_kit.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
+    JustAudioMediaKit.ensureInitialized(linux: true, windows: false);
+  }
+
   await dotenv.load(fileName: '.env');
 
   final url = dotenv.env['SUPABASE_URL'];

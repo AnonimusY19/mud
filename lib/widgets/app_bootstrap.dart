@@ -75,7 +75,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
       try {
         await StreamChatService.instance.connect(profile);
       } catch (e) {
-        debugPrint('Stream Chat connect error: $e');
+        debugPrint('Stream Chat connect error');
       }
       if (!mounted) return;
       if (_bootstrappingUserId != userId) return;

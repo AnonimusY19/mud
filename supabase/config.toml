@@ -412,3 +412,11 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Verifica P.IVA in registrazione (pre-login): accetta JWT anon.
+[functions.verify-vat]
+verify_jwt = true
+
+# Token Stream: richiede utente autenticato.
+[functions.stream-token]
+verify_jwt = true
