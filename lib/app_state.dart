@@ -31,7 +31,19 @@ class AppState extends ChangeNotifier {
   String? get currentUserId => _listingService.currentUserId;
   String? get currentUserEmail => _profileService.currentUserEmail;
 
-  bool get isDarkTheme => themeMode != ThemeMode.light;
+  /// Brightness effettivamente usata dall'app (risolve anche ThemeMode.system).
+  Brightness get effectiveBrightness {
+    switch (themeMode) {
+      case ThemeMode.light:
+        return Brightness.light;
+      case ThemeMode.dark:
+        return Brightness.dark;
+      case ThemeMode.system:
+        return WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    }
+  }
+
+  bool get isDarkTheme => effectiveBrightness == Brightness.dark;
 
   Future<void> loadThemePreference() async {
     final prefs = await SharedPreferences.getInstance();
@@ -46,15 +58,16 @@ class AppState extends ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode value, {bool persist = true}) async {
     themeMode = value;
-    final brightness = value == ThemeMode.light
-        ? Brightness.light
-        : value == ThemeMode.dark
-            ? Brightness.dark
-            : WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final brightness = switch (value) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.system =>
+        WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    };
     AppColors.applyBrightness(brightness);
-    syncSystemUiOverlay(value == ThemeMode.system
-        ? (brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light)
-        : value);
+    syncSystemUiOverlay(
+      brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
+    );
     notifyListeners();
     if (persist) {
       final prefs = await SharedPreferences.getInstance();
