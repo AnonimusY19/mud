@@ -88,6 +88,9 @@ class ProfileService {
       logoUrl: profile.logoUrl,
       modalita: profile.modalita,
       address: profile.address,
+      stripeAccountId: profile.stripeAccountId,
+      stripeChargesEnabled: profile.stripeChargesEnabled,
+      stripeDetailsSubmitted: profile.stripeDetailsSubmitted,
     );
   }
 
@@ -126,7 +129,9 @@ class ProfileService {
 
     final existing = await _client.from('profiles').select('id, tipo_attivita').eq('id', userId).maybeSingle();
     if (existing == null) {
-      if (tipoAttivita == 'Fornitore' || tipoAttivita == 'Acquirente') {
+      if (tipoAttivita == 'Fornitore' ||
+          tipoAttivita == 'Acquirente' ||
+          tipoAttivita == 'Entrambi') {
         identity['tipo_attivita'] = tipoAttivita;
       }
       await _client.from('profiles').insert({'id': userId, ...identity});

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/listing.dart';
 import 'models/profile.dart';
 import 'services/listing_service.dart';
 import 'services/profile_service.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 
 enum AppMode { compra, vendi }
 
@@ -13,10 +16,13 @@ class AppState extends ChangeNotifier {
   })  : _listingService = listingService ?? ListingService(),
         _profileService = profileService ?? ProfileService();
 
+  static const _themeModeKey = 'mud_theme_mode';
+
   final ListingService _listingService;
   final ProfileService _profileService;
 
   AppMode mode = AppMode.compra;
+  ThemeMode themeMode = ThemeMode.dark;
   Profile? profile;
   final List<Listing> listings = [];
   bool listingsLoading = false;
@@ -24,6 +30,47 @@ class AppState extends ChangeNotifier {
 
   String? get currentUserId => _listingService.currentUserId;
   String? get currentUserEmail => _profileService.currentUserEmail;
+
+  bool get isDarkTheme => themeMode != ThemeMode.light;
+
+  Future<void> loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_themeModeKey);
+    final loaded = switch (raw) {
+      'light' => ThemeMode.light,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.dark,
+    };
+    await setThemeMode(loaded, persist: false);
+  }
+
+  Future<void> setThemeMode(ThemeMode value, {bool persist = true}) async {
+    themeMode = value;
+    final brightness = value == ThemeMode.light
+        ? Brightness.light
+        : value == ThemeMode.dark
+            ? Brightness.dark
+            : WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    AppColors.applyBrightness(brightness);
+    syncSystemUiOverlay(value == ThemeMode.system
+        ? (brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light)
+        : value);
+    notifyListeners();
+    if (persist) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _themeModeKey,
+        switch (value) {
+          ThemeMode.light => 'light',
+          ThemeMode.system => 'system',
+          ThemeMode.dark => 'dark',
+        },
+      );
+    }
+  }
+
+  Future<void> setDarkTheme(bool dark) =>
+      setThemeMode(dark ? ThemeMode.dark : ThemeMode.light);
 
   List<Listing> get myListings {
     final userId = currentUserId;

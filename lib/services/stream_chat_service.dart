@@ -127,21 +127,49 @@ class StreamChatService {
       userB: listing.userId,
     );
 
-    final channel = client.channel(
-      'messaging',
-      id: channelId,
-      extraData: {
-        'members': [currentUserId, listing.userId],
-        'name': listing.displayTitle,
-        'listing_id': listing.id,
-        'listing_title': listing.displayTitle,
-        'listing_company': otherName,
-        'image': listing.imageUrl,
-      },
-    );
+    Object? lastError;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        if (attempt > 0) {
+          await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
+          // Riapre il websocket se è caduto dopo la pausa / errore di rete.
+          try {
+            await client.openConnection();
+          } catch (_) {}
+        }
 
-    await channel.watch();
-    return channel;
+        final channel = client.channel(
+          'messaging',
+          id: channelId,
+          extraData: {
+            'members': [currentUserId, listing.userId],
+            'name': listing.displayTitle,
+            'listing_id': listing.id,
+            'seller_id': listing.userId,
+            'listing_title': listing.displayTitle,
+            'listing_company': otherName,
+            'image': listing.imageUrl,
+          },
+        );
+
+        await channel.watch();
+        return channel;
+      } catch (e) {
+        lastError = e;
+        final msg = e.toString().toLowerCase();
+        final transient = msg.contains('connection') ||
+            msg.contains('closed before') ||
+            msg.contains('socket') ||
+            msg.contains('timeout') ||
+            msg.contains('network');
+        if (!transient || attempt == 2) break;
+      }
+    }
+
+    throw StateError(
+      'Connessione chat instabile. Esci e rientra, poi riprova Contatta. '
+      '(${lastError ?? 'errore di rete'})',
+    );
   }
 
   Future<void> _ensureStreamUser({

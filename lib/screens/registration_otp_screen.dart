@@ -155,7 +155,7 @@ class _RegistrationOtpScreenState extends State<RegistrationOtpScreen> {
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.primary),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Verifica telefono',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textGrey, fontSize: 16),
@@ -175,7 +175,7 @@ class _RegistrationOtpScreenState extends State<RegistrationOtpScreen> {
                     : 'È stato inviato un codice OTP al numero $_phoneDisplay. '
                         'Inseriscilo qui sotto per completare la registrazione.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textGrey, fontSize: 14, height: 1.4),
+                style: TextStyle(color: AppColors.textGrey, fontSize: 14, height: 1.4),
               ),
             ),
             const SizedBox(height: 28),
@@ -193,7 +193,7 @@ class _RegistrationOtpScreenState extends State<RegistrationOtpScreen> {
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: 6),
               decoration: InputDecoration(
                 hintText: 'codice otp',
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.5,
@@ -204,11 +204,11 @@ class _RegistrationOtpScreenState extends State<RegistrationOtpScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -263,7 +263,7 @@ class _RegistrationOtpScreenState extends State<RegistrationOtpScreen> {
             ),
             if (_mode == RegistrationOtpMode.local) ...[
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'SMS provider non attivo: stai usando il codice di sviluppo.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textLightGrey, fontSize: 12),

@@ -16,6 +16,9 @@ class Profile {
   final String? logoUrl;
   final AppMode modalita;
   final Address address;
+  final String? stripeAccountId;
+  final bool stripeChargesEnabled;
+  final bool stripeDetailsSubmitted;
 
   const Profile({
     required this.id,
@@ -32,7 +35,45 @@ class Profile {
     this.logoUrl,
     this.modalita = AppMode.compra,
     this.address = const Address(formattedAddress: ''),
+    this.stripeAccountId,
+    this.stripeChargesEnabled = false,
+    this.stripeDetailsSubmitted = false,
   });
+
+  bool get stripeReady => stripeChargesEnabled && (stripeAccountId?.isNotEmpty ?? false);
+
+  /// Può pubblicare / vendere: Fornitore o Entrambi.
+  bool get isSellerRole =>
+      tipoAttivita == 'Fornitore' || tipoAttivita == 'Entrambi';
+
+  /// Venditore senza Stripe completo: deve completare Connect.
+  bool get needsStripeOnboarding => isSellerRole && !stripeReady;
+
+  Profile copyWithStripe({
+    String? stripeAccountId,
+    bool? stripeChargesEnabled,
+    bool? stripeDetailsSubmitted,
+  }) {
+    return Profile(
+      id: id,
+      nome: nome,
+      cognome: cognome,
+      codiceFiscale: codiceFiscale,
+      nomeAzienda: nomeAzienda,
+      partitaIva: partitaIva,
+      codiceSdi: codiceSdi,
+      tipoAttivita: tipoAttivita,
+      descrizione: descrizione,
+      localita: localita,
+      telefono: telefono,
+      logoUrl: logoUrl,
+      modalita: modalita,
+      address: address,
+      stripeAccountId: stripeAccountId ?? this.stripeAccountId,
+      stripeChargesEnabled: stripeChargesEnabled ?? this.stripeChargesEnabled,
+      stripeDetailsSubmitted: stripeDetailsSubmitted ?? this.stripeDetailsSubmitted,
+    );
+  }
 
   factory Profile.fromJson(Map<String, dynamic> json) {
     final address = Address.fromJson(json, formattedKey: 'address');
@@ -54,6 +95,9 @@ class Profile {
       address: address.formattedAddress.isNotEmpty
           ? address
           : address.copyWith(formattedAddress: localita),
+      stripeAccountId: json['stripe_account_id'] as String?,
+      stripeChargesEnabled: json['stripe_charges_enabled'] == true,
+      stripeDetailsSubmitted: json['stripe_details_submitted'] == true,
     );
   }
 }

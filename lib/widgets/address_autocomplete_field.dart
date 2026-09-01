@@ -142,7 +142,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.border),
+      borderSide: BorderSide(color: AppColors.border),
     );
 
     return Column(
@@ -153,7 +153,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           focusNode: _focusNode,
           decoration: InputDecoration(
             hintText: widget.hint ?? 'Inizia a digitare un indirizzo...',
-            hintStyle: const TextStyle(color: AppColors.textLightGrey),
+            hintStyle: TextStyle(color: AppColors.textLightGrey),
             filled: true,
             fillColor: AppColors.surfaceElevated,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -169,12 +169,12 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
-                : const Icon(Icons.place_outlined, color: AppColors.textGrey),
+                : Icon(Icons.place_outlined, color: AppColors.textGrey),
           ),
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         if (_loading)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 8),
             child: Text('Ricerca indirizzi...', style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
           ),
@@ -201,7 +201,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             child: Column(
               children: [
                 for (var i = 0; i < _suggestions.length; i++) ...[
-                  if (i > 0) const Divider(height: 1, color: AppColors.border),
+                  if (i > 0) Divider(height: 1, color: AppColors.border),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -219,7 +219,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                                 children: [
                                   Text(
                                     _suggestions[i].primaryText,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.textPrimary,
@@ -228,7 +228,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                                   if (_suggestions[i].secondaryText.isNotEmpty)
                                     Text(
                                       _suggestions[i].secondaryText,
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textGrey),
+                                      style: TextStyle(fontSize: 12, color: AppColors.textGrey),
                                     ),
                                 ],
                               ),

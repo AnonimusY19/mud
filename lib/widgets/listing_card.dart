@@ -6,7 +6,13 @@ import 'type_badge.dart';
 
 class ListingCard extends StatelessWidget {
   final Listing listing;
-  const ListingCard({super.key, required this.listing});
+  final bool isGuestPreview;
+
+  const ListingCard({
+    super.key,
+    required this.listing,
+    this.isGuestPreview = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +22,11 @@ class ListingCard extends StatelessWidget {
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: () => ListingDetailDialog.open(context, listing),
+        onTap: () => ListingDetailDialog.open(
+          context,
+          listing,
+          isGuestPreview: isGuestPreview,
+        ),
         borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
@@ -30,17 +40,43 @@ class ListingCard extends StatelessWidget {
                 aspectRatio: 16 / 10,
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
-                  child: listing.imageUrl != null
-                      ? Image.network(
-                          listing.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stack) => _placeholder(),
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return Container(color: AppColors.surfaceGrey);
-                          },
-                        )
-                      : _placeholder(),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      listing.imageUrl != null
+                          ? Image.network(
+                              listing.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stack) => _placeholder(),
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Container(color: AppColors.surfaceGrey);
+                              },
+                            )
+                          : _placeholder(),
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: TypeBadge(type: listing.type),
+                      ),
+                      if (isGuestPreview)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.55),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Preview',
+                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               Expanded(
@@ -49,35 +85,28 @@ class ListingCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          TypeBadge(type: listing.type),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              listing.category,
-                              textAlign: TextAlign.right,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: AppColors.textLightGrey, fontSize: 11),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        listing.category,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         listing.displayTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.textPrimary),
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        listing.displayCompanyName.isNotEmpty
-                            ? listing.displayCompanyName
-                            : listing.description,
+                        isGuestPreview
+                            ? 'Azienda verificata · Accedi per i dettagli'
+                            : (listing.displayCompanyName.isNotEmpty
+                                ? listing.displayCompanyName
+                                : listing.description),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.textLightGrey, fontSize: 11.5, height: 1.25),
+                        style: TextStyle(color: AppColors.textLightGrey, fontSize: 11.5, height: 1.25),
                       ),
                       const Spacer(),
                       Row(
@@ -88,13 +117,16 @@ class ListingCard extends StatelessWidget {
                               TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: '€${listing.price.toStringAsFixed(2)}',
+                                    text: isGuestPreview
+                                        ? '€${listing.price.toStringAsFixed(0)}…'
+                                        : '€${listing.price.toStringAsFixed(2)}',
                                     style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13.5),
                                   ),
-                                  TextSpan(
-                                    text: '/${listing.unit}',
-                                    style: const TextStyle(color: AppColors.textLightGrey, fontSize: 11),
-                                  ),
+                                  if (!isGuestPreview)
+                                    TextSpan(
+                                      text: '/${listing.unit}',
+                                      style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
+                                    ),
                                 ],
                               ),
                               maxLines: 1,
@@ -105,7 +137,7 @@ class ListingCard extends StatelessWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.location_on_outlined, size: 12, color: AppColors.textLightGrey),
+                              Icon(Icons.location_on_outlined, size: 12, color: AppColors.textLightGrey),
                               const SizedBox(width: 2),
                               ConstrainedBox(
                                 constraints: const BoxConstraints(maxWidth: 90),
@@ -114,7 +146,7 @@ class ListingCard extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.right,
-                                  style: const TextStyle(color: AppColors.textGrey, fontSize: 11),
+                                  style: TextStyle(color: AppColors.textGrey, fontSize: 11),
                                 ),
                               ),
                             ],
@@ -140,3 +172,4 @@ class ListingCard extends StatelessWidget {
     );
   }
 }
+

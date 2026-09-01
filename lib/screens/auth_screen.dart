@@ -18,8 +18,13 @@ import '../widgets/form_fields.dart';
 
 class AuthScreen extends StatefulWidget {
   final String? initialMessage;
+  final bool startOnRegister;
 
-  const AuthScreen({super.key, this.initialMessage});
+  const AuthScreen({
+    super.key,
+    this.initialMessage,
+    this.startOnRegister = false,
+  });
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -37,10 +42,10 @@ class _AuthScreenState extends State<AuthScreen> {
   final _partitaIvaCtrl = TextEditingController();
   final _codiceSdiCtrl = TextEditingController();
 
-  bool _isLogin = true;
+  late bool _isLogin;
   bool _loading = false;
   bool _obscurePassword = true;
-  String? _tipoAttivita; // 'Fornitore' | 'Acquirente'
+  String? _tipoAttivita; // 'Fornitore' | 'Acquirente' | 'Entrambi'
   String? _error;
   String? _info;
   Address? _sedeLegale;
@@ -65,6 +70,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    _isLogin = !widget.startOnRegister;
     _error = widget.initialMessage;
   }
 
@@ -136,9 +142,11 @@ class _AuthScreenState extends State<AuthScreen> {
       return false;
     }
 
-    if (_tipoAttivita != 'Fornitore' && _tipoAttivita != 'Acquirente') {
+    if (_tipoAttivita != 'Fornitore' &&
+        _tipoAttivita != 'Acquirente' &&
+        _tipoAttivita != 'Entrambi') {
       setState(() {
-        _error = 'Scegli se sei un fornitore o un acquirente';
+        _error = 'Scegli se sei un fornitore, un acquirente o entrambi';
         _info = null;
       });
       return false;
@@ -205,6 +213,8 @@ class _AuthScreenState extends State<AuthScreen> {
       final auth = Supabase.instance.client.auth;
       if (_isLogin) {
         await auth.signInWithPassword(email: email, password: password);
+        if (!mounted) return;
+        _closeAfterAuth();
       } else {
         final vies = await ViesService().checkItalianVat(_partitaIvaCtrl.text);
         if (!mounted) return;
@@ -273,6 +283,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 _info =
                     'Registrazione riuscita. Controlla la casella email e conferma l\'account, poi accedi.';
               });
+            } else {
+              _closeAfterAuth();
             }
             break;
         }
@@ -281,6 +293,13 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _error = _friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _closeAfterAuth() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
     }
   }
 
@@ -294,9 +313,23 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final closeBar = Navigator.of(context).canPop()
+        ? AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              tooltip: 'Chiudi',
+              icon: Icon(Icons.close, color: AppColors.textPrimary),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          )
+        : null;
+
     if (_useSplitLayout(context)) {
       final isRegister = !_isLogin;
       return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: closeBar,
         body: Row(
           children: [
             Expanded(flex: isRegister ? 3 : 5, child: _BrandingPane(isLogin: _isLogin)),
@@ -376,6 +409,7 @@ class _AuthScreenState extends State<AuthScreen> {
     // Android / iOS (e finestre strette): layout originale a colonna unica
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: closeBar,
       body: SafeArea(
         child: _FormPane(
           isLogin: _isLogin,
@@ -608,7 +642,7 @@ class _FormPane extends StatelessWidget {
         Text(
           isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textGrey, fontSize: 16),
+          style: TextStyle(color: AppColors.textGrey, fontSize: 16),
         ),
         SizedBox(height: wideRegister ? 16 : 32),
       ] else ...[
@@ -625,7 +659,7 @@ class _FormPane extends StatelessWidget {
           isLogin
               ? 'Inserisci le credenziali per entrare nel marketplace.'
               : 'Compila i dati per registrare la tua azienda su MUD.',
-          style: const TextStyle(color: AppColors.textGrey, fontSize: 14, height: 1.35),
+          style: TextStyle(color: AppColors.textGrey, fontSize: 14, height: 1.35),
         ),
         SizedBox(height: wideRegister ? 14 : 28),
       ],
@@ -650,7 +684,7 @@ class _FormPane extends StatelessWidget {
                 children: [
                   formTextField(controller: partitaIvaCtrl, hint: '12345678901', keyboardType: TextInputType.number, dense: true),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Verificata sul server via VIES (UE) al momento della registrazione.',
                     style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
                   ),
@@ -659,36 +693,44 @@ class _FormPane extends StatelessWidget {
             ),
           ),
           SizedBox(height: gap),
-          _pair(
-            _field('Codice destinatario SDI', formTextField(controller: codiceSdiCtrl, hint: 'ABCDEFG', dense: true)),
-            _field(
-              'Tipo attività',
-              Row(
-                children: [
-                  Expanded(
-                    child: _RoleChoice(
-                      label: 'Fornitore',
-                      selected: tipoAttivita == 'Fornitore',
-                      onTap: () => onTipoChanged('Fornitore'),
-                      compact: true,
-                    ),
+          _field('Codice destinatario SDI', formTextField(controller: codiceSdiCtrl, hint: 'ABCDEFG', dense: true)),
+          SizedBox(height: gap),
+          _field(
+            'Tipo attività',
+            Row(
+              children: [
+                Expanded(
+                  child: _RoleChoice(
+                    label: 'Fornitore',
+                    selected: tipoAttivita == 'Fornitore',
+                    onTap: () => onTipoChanged('Fornitore'),
+                    compact: true,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _RoleChoice(
-                      label: 'Acquirente',
-                      selected: tipoAttivita == 'Acquirente',
-                      onTap: () => onTipoChanged('Acquirente'),
-                      compact: true,
-                    ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RoleChoice(
+                    label: 'Acquirente',
+                    selected: tipoAttivita == 'Acquirente',
+                    onTap: () => onTipoChanged('Acquirente'),
+                    compact: true,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _RoleChoice(
+                    label: 'Entrambi',
+                    selected: tipoAttivita == 'Entrambi',
+                    onTap: () => onTipoChanged('Entrambi'),
+                    compact: true,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Il tipo di attività non potrà essere modificato in seguito.',
+          Text(
+            'Il tipo di attivita non potra essere modificato in seguito. Solo Fornitore/Entrambi collegano Stripe.',
             style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
           ),
           SizedBox(height: gap),
@@ -748,7 +790,7 @@ class _FormPane extends StatelessWidget {
           formLabel('Partita IVA'),
           formTextField(controller: partitaIvaCtrl, hint: '12345678901', keyboardType: TextInputType.number),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Verificata sul server via VIES (UE) al momento della registrazione.',
             style: TextStyle(color: AppColors.textLightGrey, fontSize: 11),
           ),
@@ -774,11 +816,19 @@ class _FormPane extends StatelessWidget {
                   onTap: () => onTipoChanged('Acquirente'),
                 ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _RoleChoice(
+                  label: 'Entrambi',
+                  selected: tipoAttivita == 'Entrambi',
+                  onTap: () => onTipoChanged('Entrambi'),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Questa scelta non potrà essere modificata in seguito.',
+          Text(
+            'Questa scelta non potra essere modificata. Solo Fornitore/Entrambi collegano Stripe.',
             style: TextStyle(color: AppColors.textLightGrey, fontSize: 12),
           ),
           SizedBox(height: gap),

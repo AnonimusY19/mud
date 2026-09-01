@@ -6,6 +6,7 @@ import '../widgets/edit_listing_dialog.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/my_listing_tile.dart';
 import '../widgets/section_header.dart';
+import '../widgets/stripe_seller_gate.dart';
 
 class ListingsScreen extends StatelessWidget {
   const ListingsScreen({super.key});
@@ -14,6 +15,7 @@ class ListingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = AppScope.of(context);
     final listings = appState.myListings;
+    final needsStripe = appState.profile?.needsStripeOnboarding == true;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -39,6 +41,26 @@ class ListingsScreen extends StatelessWidget {
             ),
           ],
         ),
+        if (needsStripe) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.danger.withValues(alpha: 0.35)),
+            ),
+            child: Text(
+              'Collega Stripe Connect (Profilo o banner in alto) prima di creare annunci.',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         if (appState.listingsLoading)
           const Padding(
@@ -59,10 +81,16 @@ class ListingsScreen extends StatelessWidget {
             ),
           )
         else if (listings.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 60),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60),
             child: Center(
-              child: EmptyState(icon: Icons.campaign_outlined, title: 'Nessun annuncio', subtitle: 'Crea il tuo primo annuncio'),
+              child: EmptyState(
+                icon: Icons.campaign_outlined,
+                title: 'Nessun annuncio',
+                subtitle: needsStripe
+                    ? 'Completa Stripe Connect per pubblicare'
+                    : 'Crea il tuo primo annuncio',
+              ),
             ),
           )
         else
@@ -77,6 +105,19 @@ class ListingsScreen extends StatelessWidget {
   }
 
   Future<void> _openEditor(BuildContext context, AppState appState, Listing? listing) async {
+    if (listing == null && appState.profile?.needsStripeOnboarding == true) {
+      await showStripeRequiredDialogIfNeeded(context);
+      if (appState.profile?.needsStripeOnboarding == true) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Devi completare Stripe Connect prima di aggiungere annunci'),
+          ),
+        );
+        return;
+      }
+    }
+
     final result = await showDialog<Listing>(
       context: context,
       builder: (_) => EditListingDialog(listing: listing),
@@ -88,11 +129,13 @@ class ListingsScreen extends StatelessWidget {
       } else {
         await appState.updateListing(result);
       }
-    } catch (_) {
+    } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Errore nel salvataggio dell\'annuncio')),
-      );
+      final raw = e.toString();
+      final message = raw.contains('Stripe Connect')
+          ? 'Collega Stripe Connect prima di pubblicare annunci'
+          : 'Errore nel salvataggio dell\'annuncio';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -104,7 +147,10 @@ class ListingsScreen extends StatelessWidget {
         content: Text('Vuoi eliminare "${listing.title}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Annulla')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Elimina', style: TextStyle(color: AppColors.danger))),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Elimina', style: TextStyle(color: AppColors.danger)),
+          ),
         ],
       ),
     );

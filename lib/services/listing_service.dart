@@ -8,6 +8,14 @@ class ListingService {
 
   String? get currentUserId => _client.auth.currentUser?.id;
 
+  Future<Listing?> fetchById(String id) async {
+    final row = await _client.from('listings').select().eq('id', id).maybeSingle();
+    if (row == null) return null;
+    final listing = Listing.fromJson(Map<String, dynamic>.from(row));
+    final companies = await _loadCompanyNames([listing.userId]);
+    return listing.copyWith(companyName: companies[listing.userId] ?? '');
+  }
+
   Future<List<Listing>> fetchAll() async {
     final rows = await _client.from('listings').select().order('created_at', ascending: false);
     final listings = (rows as List)

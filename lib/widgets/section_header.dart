@@ -15,7 +15,7 @@ class SectionHeader extends StatelessWidget {
       children: [
         Text(title, style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
         const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(fontSize: 15, color: AppColors.textGrey)),
+        Text(subtitle, style: TextStyle(fontSize: 15, color: AppColors.textGrey)),
       ],
     );
   }

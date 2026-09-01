@@ -27,7 +27,7 @@ Widget formTextField({
 }) {
   final border = OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: AppColors.border),
+    borderSide: BorderSide(color: AppColors.border),
   );
   return TextField(
     controller: controller,
@@ -40,7 +40,7 @@ Widget formTextField({
     cursorColor: AppColors.primary,
     decoration: InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.textLightGrey),
+      hintStyle: TextStyle(color: AppColors.textLightGrey),
       filled: true,
       fillColor: readOnly ? AppColors.surface : AppColors.surfaceElevated,
       isDense: dense,

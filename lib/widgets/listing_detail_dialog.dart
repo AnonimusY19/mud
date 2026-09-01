@@ -4,18 +4,31 @@ import '../models/listing.dart';
 import '../screens/channel_page.dart';
 import '../services/stream_chat_service.dart';
 import '../theme/app_colors.dart';
+import '../utils/auth_navigation.dart';
 import 'type_badge.dart';
 
 class ListingDetailDialog extends StatelessWidget {
   final Listing listing;
+  final bool isGuestPreview;
 
-  const ListingDetailDialog({super.key, required this.listing});
+  const ListingDetailDialog({
+    super.key,
+    required this.listing,
+    this.isGuestPreview = false,
+  });
 
-  static Future<void> open(BuildContext context, Listing listing) {
+  static Future<void> open(
+    BuildContext context,
+    Listing listing, {
+    bool isGuestPreview = false,
+  }) {
     return showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (_) => ListingDetailDialog(listing: listing),
+      builder: (_) => ListingDetailDialog(
+        listing: listing,
+        isGuestPreview: isGuestPreview,
+      ),
     );
   }
 
@@ -43,7 +56,14 @@ class ListingDetailDialog extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(flex: 5, child: _ImagePane(listing: listing)),
-                          Expanded(flex: 5, child: _DetailsPane(listing: listing, expanded: true)),
+                          Expanded(
+                            flex: 5,
+                            child: _DetailsPane(
+                              listing: listing,
+                              expanded: true,
+                              isGuestPreview: isGuestPreview,
+                            ),
+                          ),
                         ],
                       ),
                     )
@@ -52,7 +72,11 @@ class ListingDetailDialog extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(height: 220, width: double.infinity, child: _ImagePane(listing: listing)),
-                          _DetailsPane(listing: listing, expanded: false),
+                          _DetailsPane(
+                            listing: listing,
+                            expanded: false,
+                            isGuestPreview: isGuestPreview,
+                          ),
                         ],
                       ),
                     ),
@@ -65,7 +89,7 @@ class ListingDetailDialog extends StatelessWidget {
                   child: IconButton(
                     tooltip: 'Chiudi',
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: AppColors.textPrimary),
+                    icon: Icon(Icons.close, color: AppColors.textPrimary),
                   ),
                 ),
               ),
@@ -107,58 +131,77 @@ class _ImagePane extends StatelessWidget {
 class _DetailsPane extends StatelessWidget {
   final Listing listing;
   final bool expanded;
-  const _DetailsPane({required this.listing, required this.expanded});
+  final bool isGuestPreview;
+  const _DetailsPane({
+    required this.listing,
+    required this.expanded,
+    this.isGuestPreview = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final formatted = listing.address.formattedAddress;
     final location = listing.location;
-    final address = formatted.isNotEmpty ? formatted : location;
+    final fullAddress = formatted.isNotEmpty ? formatted : location;
+    final cityOnly = listing.address.displayCity;
+    final address = isGuestPreview
+        ? (cityOnly.isNotEmpty ? cityOnly : 'Località disponibile dopo accesso')
+        : fullAddress;
     final companyRaw = listing.displayCompanyName.trim();
-    final company = companyRaw.isNotEmpty ? companyRaw : 'Azienda non indicata';
+    final company = isGuestPreview
+        ? 'Azienda verificata'
+        : (companyRaw.isNotEmpty ? companyRaw : 'Azienda non indicata');
     final title = listing.displayTitle;
     final category = listing.category;
     final unit = listing.unit;
     final description = listing.description;
+    final previewDescription = description.trim().isEmpty
+        ? ''
+        : (description.length <= 120 ? description : '${description.substring(0, 120)}…');
 
     final content = <Widget>[
       TypeBadge(type: listing.type),
       const SizedBox(height: 14),
       Text(
         title,
-        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.2, color: AppColors.textPrimary),
+        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.2, color: AppColors.textPrimary),
       ),
       const SizedBox(height: 6),
       Text(
         company,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textLightGrey),
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textLightGrey),
       ),
       const SizedBox(height: 16),
       _InfoRow(label: 'Categoria', value: category),
       const SizedBox(height: 10),
-      _InfoRow(label: 'Indirizzo', value: address.isNotEmpty ? address : '—'),
+      _InfoRow(label: isGuestPreview ? 'Zona' : 'Indirizzo', value: address.isNotEmpty ? address : '—'),
       const SizedBox(height: 10),
       _InfoRow(
         label: 'Prezzo',
-        value: '€${listing.price.toStringAsFixed(2)} / $unit',
+        value: isGuestPreview
+            ? 'da €${listing.price.toStringAsFixed(0)} / $unit'
+            : '€${listing.price.toStringAsFixed(2)} / $unit',
         valueStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primary),
       ),
-      if (description.trim().isNotEmpty) ...[
+      if ((isGuestPreview ? previewDescription : description).trim().isNotEmpty) ...[
         const SizedBox(height: 18),
-        const Text('Descrizione', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textLightGrey)),
+        Text('Descrizione', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textLightGrey)),
         const SizedBox(height: 6),
         Text(
-          description,
-          style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.textGrey),
+          isGuestPreview ? previewDescription : description,
+          style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.textGrey),
         ),
       ],
       if (expanded) const Spacer() else const SizedBox(height: 24),
       SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: () => _startChat(context),
-          icon: const Icon(Icons.chat_bubble_outline),
-          label: const Text('Contatta', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          onPressed: () => isGuestPreview ? _requireLogin(context) : _startChat(context),
+          icon: Icon(isGuestPreview ? Icons.lock_outline : Icons.chat_bubble_outline),
+          label: Text(
+            isGuestPreview ? 'Accedi per contattare' : 'Contatta',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
@@ -178,6 +221,11 @@ class _DetailsPane extends StatelessWidget {
         children: content,
       ),
     );
+  }
+
+  void _requireLogin(BuildContext context) {
+    Navigator.of(context).pop();
+    openAuthScreen(context, initialMessage: 'Accedi per contattare il fornitore');
   }
 
   Future<void> _startChat(BuildContext context) async {
@@ -228,9 +276,9 @@ class _InfoRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textLightGrey, letterSpacing: 0.3)),
+        Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textLightGrey, letterSpacing: 0.3)),
         const SizedBox(height: 4),
-        Text(value, style: valueStyle ?? const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(value, style: valueStyle ?? TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
       ],
     );
   }

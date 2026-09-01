@@ -5,11 +5,10 @@ import 'package:stream_chat_flutter/stream_chat_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_state.dart';
 import '../main_shell.dart';
-import '../screens/auth_screen.dart';
 import '../services/stream_chat_service.dart';
 import '../theme/app_colors.dart';
 
-/// Gate di avvio: sessione → profilo → Stream Chat → app.
+/// Gate di avvio: guest marketplace oppure sessione autenticata.
 class AppBootstrap extends StatefulWidget {
   final AppState appState;
 
@@ -24,7 +23,6 @@ class _AppBootstrapState extends State<AppBootstrap> {
   bool _loading = true;
   bool _ready = false;
   bool _bootstrapInFlight = false;
-  String? _authMessage;
   String? _bootstrappingUserId;
 
   @override
@@ -48,6 +46,8 @@ class _AppBootstrapState extends State<AppBootstrap> {
       _bootstrapInFlight = false;
       await StreamChatService.instance.disconnect();
       widget.appState.clearSessionData();
+      // Guest: carica comunque gli annunci pubblici.
+      unawaited(widget.appState.loadListings());
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -83,14 +83,12 @@ class _AppBootstrapState extends State<AppBootstrap> {
       setState(() {
         _loading = false;
         _ready = true;
-        _authMessage = null;
       });
     } catch (_) {
       _bootstrappingUserId = null;
       _bootstrapInFlight = false;
       await StreamChatService.instance.disconnect();
       widget.appState.clearSessionData();
-      _authMessage = 'Impossibile accedere al profilo. Effettua di nuovo l\'accesso.';
       try {
         await Supabase.instance.client.auth.signOut();
       } catch (_) {
@@ -106,16 +104,16 @@ class _AppBootstrapState extends State<AppBootstrap> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
               Text(
-                'Caricamento profilo...',
+                'Caricamento...',
                 style: TextStyle(color: AppColors.textGrey, fontWeight: FontWeight.w600),
               ),
             ],
@@ -124,8 +122,9 @@ class _AppBootstrapState extends State<AppBootstrap> {
       );
     }
 
+    // Ospite: marketplace in sola lettura / preview.
     if (!_ready) {
-      return AuthScreen(initialMessage: _authMessage);
+      return const MainShell(isGuest: true);
     }
 
     final stream = StreamChatService.instance;
@@ -133,10 +132,10 @@ class _AppBootstrapState extends State<AppBootstrap> {
       return StreamChat(
         client: stream.client,
         themeData: StreamChatThemeData(),
-        child: const MainShell(),
+        child: const MainShell(isGuest: false),
       );
     }
 
-    return const MainShell();
+    return const MainShell(isGuest: false);
   }
 }

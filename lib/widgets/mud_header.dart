@@ -16,7 +16,7 @@ class MudHeader extends StatelessWidget {
         children: [
           const AppLogo(size: 36, borderRadius: 10),
           const SizedBox(width: 10),
-          const Text('MUD', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
+          Text('MUD', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
           const Spacer(),
           ModeToggle(mode: appState.mode, onChanged: appState.setMode),
         ],
